@@ -9,6 +9,8 @@ class BrainTestNavigator(Brain):
   LINEA = 1
   GIRO = 2
   NOVENTA = 3
+  SEGUIR_OBJETO = 4
+  GIRAR_ESQUINA = 5
   
   NO_FORWARD = 0
   SLOW_FORWARD = 0.1
@@ -48,12 +50,15 @@ class BrainTestNavigator(Brain):
   def setup_avoid(self):
     pass
   def setup(self):
+
+    self.robot.range.units = "ROBOTS"
     self.ticks_en_linea = 0
     self.estado = self.SPIRAL
     self.setup_line()
     self.setup_spiral()
     self.setup_avoid()
-    self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa}
+    self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa,
+            self.SEGUIR_OBJETO:self.seguir_objeto, self.GIRAR_ESQUINA:self.girar_esquina}
   def _n_cycles(self):
         '''Devuelve el numero de ciclos necesarios para dar media vuelta con la configuracion actual'''
         return int(((3/self.rotacion)**2)/2.0)
@@ -88,11 +93,18 @@ class BrainTestNavigator(Brain):
         self.rotacion = -0.5
       else:
         self.rotacion = 0.5
+
   def step_line(self):
 
     global hasLine
     global lineDistance
-    if (hasLine):
+
+    #Si encuentra un objeto se para y pasa a seguirlo
+    if self.front <= 1:
+        self.velocidad = 0
+        self.rotacion = 0
+        self.state = self.SEGUIR_OBJETO
+    elif (hasLine):
       self.ticks_en_linea +=1
       print("LINEA")
       with open(self.logfile,'a') as f:
@@ -146,10 +158,56 @@ class BrainTestNavigator(Brain):
       self.ticks_en_espiral = 0
       self.estado = self.LINEA
       self.step_line()
+
+  def distancias_ultrasonidos(self):
+      #Toma las distancias de los sensores de ultrasonidos
+      self.front = min([s.distance() for s in self.robot.range["front"]])
+      self.left = min([s.distance() for s in self.robot.range["left"]])
+      self.right = min([s.distance() for s in self.robot.range["right"]])
+
+  def girar_esquina(self):
+      #Cuando esta siguiendo un objeto y se encuentra una esquina
+      ret = (0,0)
+      #Si esta cerca de la pared y no hay nada delante se cambia de estado
+      if self.left < 1 and self.front > 1:
+          self.state = self.SEGUIR_OBJETO
+      elif self.left > 2:
+          #Si esta muy lejos de la pared se acerca
+          ret = (0.2, -.2)
+      else:
+          ret = (0, -.3)
+      self.velocidad = ret[0]
+      self.rotacion = ret[1]
+
+
+  def seguir_objeto(self):
+      #Sigue un objeto
+      global hasLine
+      self.velocidad = 0.5
+      self.rotacion  = 0
+      #Si esta cerca de la pared se aleja
+      if self.left < 0.5:
+          self.velocidad = 0.2
+          self.rotacion  = -.3
+      elif self.left > 0.8:
+          #Si esta lejos se acerca
+          self.velocidad = 0.2
+          self.rotacion  = .3
+      if self.front <= 1:
+          #Si hay un objeto delante gira
+          self.velocidad = 0
+          self.rotacion  = 0
+          self.state = self.GIRAR_ESQUINA
+      if self.front > 2 and hasLine:
+          #Si no hay nada y hay linea sigue la linea
+          self.state = self.LINEA
+            
+
         
   def step(self):
     global hasLine
     global lineDistance
+    self.distancias_ultrasonidos()
     hasLine,lineDistance,searchRange = eval(self.robot.simulation[0].eval("self.getLineProperties()"))
     print "I got from the simulation",hasLine,lineDistance,searchRange
     self.estados[self.estado]()
