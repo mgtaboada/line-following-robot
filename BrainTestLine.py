@@ -68,7 +68,7 @@ class BrainTestNavigator(Brain):
     global hasLine
     if hasLine:
       self.estado = self.LINEA
-      self.step_line()
+      #self.step_line()
     else:
       self.velocidad = 0
       if abs(self.robot.th - self.orientacion_0) >= 90:
@@ -103,7 +103,7 @@ class BrainTestNavigator(Brain):
     if self.front <= 1:
         self.velocidad = 0
         self.rotacion = 0
-        self.state = self.SEGUIR_OBJETO
+        self.estado = self.SEGUIR_OBJETO
     elif (hasLine):
       self.ticks_en_linea +=1
       print("LINEA")
@@ -162,20 +162,20 @@ class BrainTestNavigator(Brain):
   def distancias_ultrasonidos(self):
       #Toma las distancias de los sensores de ultrasonidos
       self.front = min([s.distance() for s in self.robot.range["front"]])
-      self.left = min([s.distance() for s in self.robot.range["left"]])
+      self.left = min([s.distance() for s in self.robot.range["left"] + [self.robot.range[1]] + [self.robot.range[2]] ])
       self.right = min([s.distance() for s in self.robot.range["right"]])
 
   def girar_esquina(self):
       #Cuando esta siguiendo un objeto y se encuentra una esquina
       ret = (0,0)
       #Si esta cerca de la pared y no hay nada delante se cambia de estado
-      if self.left < 1 and self.front > 1:
-          self.state = self.SEGUIR_OBJETO
-      elif self.left > 2:
-          #Si esta muy lejos de la pared se acerca
-          ret = (0.2, -.2)
+      if self.front > 1.5:
+          self.estado = self.SEGUIR_OBJETO
       else:
-          ret = (0, -.3)
+          #Si esta muy lejos de la pared se acerca
+          ret = (0, -.2)
+      #else:
+      #    ret = (0, -.3)
       self.velocidad = ret[0]
       self.rotacion = ret[1]
 
@@ -197,10 +197,10 @@ class BrainTestNavigator(Brain):
           #Si hay un objeto delante gira
           self.velocidad = 0
           self.rotacion  = 0
-          self.state = self.GIRAR_ESQUINA
+          self.estado = self.GIRAR_ESQUINA
       if self.front > 2 and hasLine:
           #Si no hay nada y hay linea sigue la linea
-          self.state = self.LINEA
+          self.estado = self.LINEA
             
 
         
@@ -210,6 +210,7 @@ class BrainTestNavigator(Brain):
     self.distancias_ultrasonidos()
     hasLine,lineDistance,searchRange = eval(self.robot.simulation[0].eval("self.getLineProperties()"))
     print "I got from the simulation",hasLine,lineDistance,searchRange
+    print self.estado
     self.estados[self.estado]()
     self.move(self.velocidad,self.rotacion)
  
