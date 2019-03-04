@@ -8,6 +8,6 @@ entre la posición de la línea y el centro del robot, mientras que para la velo
 controla debe ser inverso. Así, la consigna de control del robot se calcularía de la siguiente forma:
 
 \begin{equation}
-r = K_pr \times \varepsilon + K_ir \times \int_{t} \varepsilon dt + K_dr \frac{d \varepsilon}{dt}
+r = K_pr \times \varepsilon + K_ir \times \int_{t} \varepsilon dt + K_dr \frac{d \varepsilon}{dt} \\
 v = K_rv \times r + K_iv \times \int_{t} r dt + K_dv \frac{d r}{dt}
 \end{equation}
