@@ -9,8 +9,8 @@ entre la posición de la línea y el centro del robot, mientras que para la velo
  rotación. Queremos que la velocidad sea mayor cuanto menor sea la rotación, por lo que el PID que la
 controla debe ser inverso. Así, la consigna de control del robot se calcularía de la siguiente forma:
 
-r = K_pr \times \varepsilon + K_ir \times \int_{t} \varepsilon dt + K_dr \times d \varepsilon/dt \\
-v = K_rv \times r + K_iv \times \int_{t} r dt + K_dv \times {d r}/{dt}
+r = K_{pr} \times \varepsilon + K_ir \times \int_{t} \varepsilon dt + K_dr \times d \varepsilon/dt \\
+v = K_pv \times r + K_iv \times \int_{t} r dt + K_dv \times dr/dt
 
 
 ** Estimación de las constantes de los PID
