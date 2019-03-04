@@ -61,3 +61,21 @@ Además de los ya mostrados, a continuación se muestran los recorridos del robo
 
 #+CAPTION: Recorrido por un cuadrado
 [[./doc-images/cuadrado.png]]
+
+* Esquive de obstáculos
+Para detectar y esquivar obstáculos utilizamos los sonar del robot. Diferenciamos entre dos estados:
+seguir una pared y girar una esquina cóncava con respecto al robot.
+
+** Seguir una pared
+Para seguir la pared, intenta mantener la distancia con la misma dentro de un rango, de esta manera,
+si se detecta que la distancia es menor que un umbral, se gira para alejarse y viceversa cuando se
+detecta una distancia mayor. A partir de la definición, se observa que este mismo estado sirve para
+girar las esquinas convexas con respecto al robot, como las que se encuentra cuando rodea una caja
+rectangular. Cuando se encuentra una pared de frente suponemos que se haya en una esquina cóncava,
+como las que se puede encontrar cuando sigue las paredes por dentro de una habitación. En este caso,
+pasa al siguiente estado
+
+** Rodear una esquina
+Tal y como está hecho el programa, el robot gira siempre en el mismo sentido, por lo que siempre podemos
+suponer que tiene la pared al mismo lado y, por lo tanto, siempre que se encuentra una pared de frente
+gira en sentido contrario hasta que detecta que la distancia frontal con la pared es suficientemente grande.
