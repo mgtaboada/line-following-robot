@@ -1,4 +1,4 @@
-#+OPTIONS: tex:t
+#+OPTIONS: tex: verbatim
 
 * Seguimiento de la línea
 Para seguir la línea, hemos programado un controlador PID ([[./pid.py]]) que utilizamos para controlar
