@@ -8,7 +8,13 @@ KNOWN_HEIGTH = 7.0
 def ball_square(im):
     """Devuelve las esquinas del rectángulo que inscribe a la pelota y su centro"""
     # Encontrar las coordenadas de la imagen que pertenezcan a la categoría 1 (pelota)
+    dr = (0,0)
+    ul = (0,0)
+    center = (0,0)
+
     ball = np.array(np.where(im==1))
+    if not ball.any():
+        return ul,dr,center
     # El centro es la media de las coordenadas
     center = np.uint(np.mean(ball,1)).tolist()
     # la esquina superior izquierda son las coordenadas de menor valor, la inferior derecha
