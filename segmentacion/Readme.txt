@@ -2,6 +2,8 @@
     # Segmentación de vídeo basada en colores #
     ###########################################
 
+Autores:Daniel Fernández Pérez y  Miguel García-Mauriño Taboada
+
 Para la segmentación del vídeo utilizamos un clasificador basado
 en la distancia euclídea, que clasifica cada pixel en una de las
 siguiente categorías en función de su color:
