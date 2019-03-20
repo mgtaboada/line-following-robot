@@ -52,4 +52,4 @@ while (capture.isOpened()):
     # cv2.waitKey(50)
 cv2.destroyAllWindows()
 video.release()
-print("Terminado")
+
