@@ -1,0 +1,81 @@
+#+OPTIONS: tex:t
+
+* Seguimiento de la línea
+
+** Consigna de control para el segimiento de la línea: PID
+Para seguir la línea, hemos programado un controlador PID ([[./pid.py]]) que utilizamos para controlar
+tanto la velocidad como la rotación del robot. La entrada de "error" para la rotación es la diferencia
+entre la posición de la línea y el centro del robot, mientras que para la velocidad la entrada es la
+ rotación. Queremos que la velocidad sea mayor cuanto menor sea la rotación, por lo que el PID que la
+controla debe ser inverso. Así, la consigna de control del robot se calcularía de la siguiente forma:
+
+r = K_{pr} \times \varepsilon + K_{ir} \times \int_{t} \varepsilon dt + K_{dr} \times d \varepsilon/dt \\
+v = K_{pv} \times r + K_{iv} \times \int_{t} r dt + K_{dv} \times dr/dt
+
+
+** Estimación de las constantes de los PID
+Para estimar las constantes de los PID seguimos el procedimiento Ziegler-Nichols simplificado, como se
+ha descrito en clase. Para ello, hacemos que el cerebro del robot escriba en un fichero el error que
+comete con respecto a la línea en cada momento, y representamos el contenido de dicho fichero como una
+gráfica ([[./log.py]]), de manera que podemos localizar las oscilaciones de forma sencilla.
+
+#+CAPTION: Ejemplo del robot siguiendo una línea recta, con su gráfica de error adjunta
+[[./doc-images/linea_grafica.png]]
+
+** Otras consideraciones al seguimiento de la línea
+Otro de los cambios que realizamos fue la reacción del robot cuando pierde la línea. En este caso, en
+lugar de parar el robot, distinguimos entre dos situaciones:
+1. Si el robot acaba de iniciarse, es decir, nunca ha encontrado una línea, comienza a describir una espiral hasta que la encuentra.
+2. Si el robot ya se encontraba en una línea, entonces sabemos que la línea no puede estar lejos, por lo que se para y rota hasta que la encuentra.
+
+#+CAPTION: Caso 1: El robot describe una espiral hasta que encuentra la línea
+[[./doc-images/espiral_nube.png]]
+
+** Límites del sistema
+El control no funciona todas las veces cuando se encuentra una curva muy cerrada, puesto que en algunos
+casos detecta las dos líneas como una sola y calcula el centro de esta línea virtual. Además, si encuentra
+la línea de forma perpendicular a su trayectoria, necesita varios intentos, como se muestra en la siguiente
+imagen
+
+#+CAPTION: Error para seguir la línea cuando se encuentra de forma perpendicular
+[[./doc-images/perpendicular.png]]
+
+
+** Pruebas realizadas para el seguimiento de la línea
+Además de los ya mostrados, a continuación se muestran los recorridos del robot en diferentes mapas.
+
+#+CAPTION: Recorrido por el circuito inicial, con gráfica de error
+[[./doc-images/circuito1_grafica.png]]
+
+#+CAPTION: Recorrido por una circunferencia, con gráfica de error
+[[./doc-images/circulo_grafica.png]]
+
+#+CAPTION: Recorrido por una elipse no muy excéntrica, con gráfica de error
+[[./doc-images/espiral1_grafica.png]]
+
+#+CAPTION: Recorrido por una elipse de mayor exentricidad, con gráfica de error
+[[./doc-images/espiral2_grafica.png]]
+
+#+CAPTION: Recorrido por una figura como una nube, con errores en las curvas más cerradas
+[[./doc-images/nube.png]]
+
+#+CAPTION: Recorrido por un cuadrado
+[[./doc-images/cuadrado.png]]
+
+* Esquive de obstáculos
+Para detectar y esquivar obstáculos utilizamos los sonar del robot. Diferenciamos entre dos estados:
+seguir una pared y girar una esquina cóncava con respecto al robot.
+
+** Seguir una pared
+Para seguir la pared, intenta mantener la distancia con la misma dentro de un rango, de esta manera,
+si se detecta que la distancia es menor que un umbral, se gira para alejarse y viceversa cuando se
+detecta una distancia mayor. A partir de la definición, se observa que este mismo estado sirve para
+girar las esquinas convexas con respecto al robot, como las que se encuentra cuando rodea una caja
+rectangular. Cuando se encuentra una pared de frente suponemos que se haya en una esquina cóncava,
+como las que se puede encontrar cuando sigue las paredes por dentro de una habitación. En este caso,
+pasa al siguiente estado
+
+** Rodear una esquina
+Tal y como está hecho el programa, el robot gira siempre en el mismo sentido, por lo que siempre podemos
+suponer que tiene la pared al mismo lado y, por lo tanto, siempre que se encuentra una pared de frente
+gira en sentido contrario hasta que detecta que la distancia frontal con la pared es suficientemente grande.

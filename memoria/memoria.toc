@@ -1,0 +1,10 @@
+\select@language {spanish}
+\contentsline {section}{\numberline {1}Seguimiento de la l\IeC {\'\i }nea}{2}{section.1}
+\contentsline {subsection}{\numberline {1.1}Consigna de control para el segimiento de la l\IeC {\'\i }nea: PID}{2}{subsection.1.1}
+\contentsline {subsection}{\numberline {1.2}Estimaci\IeC {\'o}n de las constantes de los PID}{2}{subsection.1.2}
+\contentsline {subsection}{\numberline {1.3}Otras consideraciones al seguimiento de la l\IeC {\'\i }nea}{2}{subsection.1.3}
+\contentsline {subsection}{\numberline {1.4}L\IeC {\'\i }mites del sistema}{3}{subsection.1.4}
+\contentsline {subsection}{\numberline {1.5}Pruebas realizadas para el seguimiento de la l\IeC {\'\i }nea}{4}{subsection.1.5}
+\contentsline {section}{\numberline {2}Esquive de obst\IeC {\'a}culos}{8}{section.2}
+\contentsline {subsection}{\numberline {2.1}Seguir una pared}{8}{subsection.2.1}
+\contentsline {subsection}{\numberline {2.2}Rodear una esquina}{8}{subsection.2.2}
