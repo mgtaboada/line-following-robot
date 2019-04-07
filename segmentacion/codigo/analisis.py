@@ -109,7 +109,13 @@ def tipo_linea(img):
 
 
 def direccion_flecha(bi):
+    '''Devuelve la direccion de la flecha
+    bi: imagen binaria donde los 1's son pixeles de la flecha y los 0's de otra cosa
 
+    devuelve: p1, p2: puntos por los que pasa la flecha. En sentido p1->p2
+              m: pendiente de la flecha, para no tener que volver a calcularla
+              ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
+'''
     _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
     area = cv2.contourArea(arrow)
