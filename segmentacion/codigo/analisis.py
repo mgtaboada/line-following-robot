@@ -8,9 +8,21 @@ CURVA_IZQUIERDA = 2
 DOS_SALIDAS = 3
 TRES_SALIDAS= 4
 
+
+def in_border (img):
+    np.savetxt ("img.txt",img)
+    mask = np.zeros (img.shape)
+    mask [1:-1,1:-1]=1
+    mask = mask.astype (bool)
+    img [mask] = 0
+    return np.array (np.where (img == 1))
+
 def chull_area(chull):
     x = chull[:,0,0]
     y = chull[:,0,1]
+    return carea(x,y)
+
+def carea(x,y):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
 def en_borde(cont,shape):
@@ -46,13 +58,13 @@ def limpiar_img(img):
 '''
 
 
-def tipo_linea(img,orig):
+def tipo_linea(img):
     """
     img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
 
     """
     thres = 0.2 # Porcentaje de cierre convexo que no es linea para considerar linea recta
-    img = limpiar_img(img)
+    #img = limpiar_img(img)
 
     paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
     cv2.imshow("Imagen limpiada",cv2.cvtColor(paleta[img],cv2.COLOR_RGB2BGR))
@@ -60,15 +72,14 @@ def tipo_linea(img,orig):
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
 
     _, conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-    cv2.drawContours(orig, conts, -1, (0,255,0), 3)
     if len(conts) == 4:
-        return TRES_SALIDAS,orig
+        return TRES_SALIDAS
     if len(conts) == 3:
-        return DOS_SALIDAS,orig
+        return DOS_SALIDAS
     _, conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
     if len(conts) == 0:
-        return None,orig
+        return None
     #suponemos que la linea es el contorno con la mayor area
     line =conts[0]
     area = cv2.contourArea(line)
@@ -80,11 +91,11 @@ def tipo_linea(img,orig):
 
     chull = cv2.convexHull(line)
 
-    cv2.drawContours(orig,[chull],0,(0,0,255),1)
+
     # Si el contorno y el chull tienen más o menos (+- 5%)la misma área,podemos considerar que es una linea recta
     charea = chull_area(chull)
     if area > charea * (1-thres) and area < charea*(1+thres):
-        return LINEA_RECTA,orig
+        return LINEA_RECTA
     # La linea es curva
     # Para averiguar hacia donde gira, comparamos la cantidad de pixeles de linea en las dos mitades
     # de la imagen
@@ -93,23 +104,106 @@ def tipo_linea(img,orig):
     izquierda = img[:,:medio]
     if np.size(derecha[derecha == 1]) > np.size(izquierda[izquierda == 1]):
         # hay mas linea a la derecha que a la izquierda -> gira a la derecha
-        return CURVA_DERECHA,orig
-    return CURVA_IZQUIERDA,orig
+        return CURVA_DERECHA
+    return CURVA_IZQUIERDA
 
-def direccion_flecha(img):
-    """
-    img: imagen binaria en la que los 1 son pixeles de flecha y los 0 de otra cosa
 
-    """
-    img, conts, hier = cv2.findContours(img[img == 1],cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+def direccion_flecha(bi):
 
-    #suponemos que la flecha es el contorno con la mayor area
-    flecha = None
-    area = 0
+    _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    arrow =conts[0]
+    area = cv2.contourArea(arrow)
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
-            flecha = cont
+            arrow = cont
             area = new_area
 
-    center,shape,angle = cv2.minAreaRect(flecha)
+
+    [vx,vy,x,y] = cv2.fitLine(arrow,cv2.DIST_L2,0,0.01,0.01)
+    h,_,w = arrow.shape
+    #points = np.array(np.where(bi==1))
+    points = np.reshape(arrow,(h,w)).T
+
+    m = vy/vx
+    mm = -1/m if m != 0 else 0
+    c = y - (m*x)
+    cc = y-((mm*x))
+
+    p1 = (x,y)
+    p2 = (x+30, m*(x+30)+c) #positive direction
+    p3 = (x+30, mm*(x+30)+cc)
+    if m < 0:
+    #     m=-m
+         aux = p1
+         p1 = p2
+         p2 = aux
+
+    pos = points.T[points[1] > cc+(mm*points[0])]
+    neg = points.T[points[1] <= cc+(mm*points[0])]
+
+
+    #print("M: {}\nC: {}\nMM:{}\nCC: {}\np1: {}".format(m[0],c,mm,cc,np.array(p1).T))
+    if carea(pos[:,0],pos[:,1]) > carea(neg[:,0],neg[:,1]):
+        #print('{}>{}'.format(pos,neg))
+        return p1,p2,m,c
+    else:
+        #print('{}<{}'.format(pos,neg))
+        return p2,p1,m,c
+
+def entrada_salida (img,anterior_entrada=None):
+    linea = (img == 2).astype (np.uint8)
+    flecha = (img == 0).astype (np.uint8)
+    h,w = linea.shape
+    # Suponemos que está cerca del centro
+    if anterior_entrada is None:
+        anterior_entrada = np.array ((h,w/2))
+
+    bordes = in_border (linea).T
+    distancias = np.sum((bordes - anterior_entrada)**2, axis=1)
+    if np.size (distancias)> 0:
+        cercano = np.argmin (distancias)
+        entrada = bordes [cercano]
+    else:
+        entrada = (0,0)
+    salida = (0,0)
+
+    # buscar la salida
+    tipo =tipo_linea (linea)
+    if tipo is None:
+        return (0,0),(0,0)
+    if tipo < DOS_SALIDAS:      # es una sola linea
+        # La salida tiene que estar separada de la entrada
+        lejano = np.argmax (distancias)
+        salida = bordes [lejano]
+    else: # debería haber una flecha
+        if np.any (flecha==1):
+            p1,p2,m,c = direccion_flecha (flecha)
+            xo = 0
+            yo = 0
+            if p1 [0] < p2 [0]:
+                # sentido positivo en las x -> buscamos el final
+                xo = w
+            elif p1 [0] == p2 [0]:
+                #vertical, usamos la misma x
+                xo = p1 [0]
+
+
+            if p1 [1] < p2 [1]:
+                # sentido positivo en las y -> buscamos el final
+                objetivo [1]=h
+            elif p1 [1] == p2 [1]:
+                #horizontal, usamos la misma y
+                objetivo [1] = p1 [1]
+            #calculamos por donde sale la recta
+            y = m*xo + c
+            if y >= h or y < 0:
+                xo = (yo-c)/m
+            else:
+                yo = y
+            #encontramos el punto mas cercano
+            distancias = np.sum((bordes - (yo,xo))**2, axis=1)
+            if np.size (distancias)> 0:
+                cercano = np.argmin (distancias)
+                entrada = bordes [cercano]
+    return (entrada [1],entrada [0]),(salida [1],salida [0])
