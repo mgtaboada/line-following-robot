@@ -72,13 +72,17 @@ def tipo_linea(img):
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
 
     _, conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-    if len(conts) == 4:
+    n_conts = 0
+    for cont in conts:
+        if cv2.contourArea (cont) > 100: # 10*10
+            n_conts +=1
+    if n_conts == 4:
         return TRES_SALIDAS
-    if len(conts) == 3:
+    if n_conts == 3:
         return DOS_SALIDAS
     _, conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
-    if len(conts) == 0:
+    if len (conts) == 0:
         return None
     #suponemos que la linea es el contorno con la mayor area
     line =conts[0]
@@ -114,7 +118,7 @@ def direccion_flecha(bi):
 
     devuelve: p1, p2: puntos por los que pasa la flecha. En sentido p1->p2
               m: pendiente de la flecha, para no tener que volver a calcularla
-              ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
+              c: ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
 '''
     _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
@@ -197,10 +201,10 @@ def entrada_salida (img,anterior_entrada=None):
 
             if p1 [1] < p2 [1]:
                 # sentido positivo en las y -> buscamos el final
-                objetivo [1]=h
+                yo=h
             elif p1 [1] == p2 [1]:
                 #horizontal, usamos la misma y
-                objetivo [1] = p1 [1]
+                yo = p1 [1]
             #calculamos por donde sale la recta
             y = m*xo + c
             if y >= h or y < 0:
@@ -211,5 +215,5 @@ def entrada_salida (img,anterior_entrada=None):
             distancias = np.sum((bordes - (yo,xo))**2, axis=1)
             if np.size (distancias)> 0:
                 cercano = np.argmin (distancias)
-                entrada = bordes [cercano]
+                salida = bordes [cercano]
     return (entrada [1],entrada [0]),(salida [1],salida [0])
