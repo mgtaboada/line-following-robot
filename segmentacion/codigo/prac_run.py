@@ -1,6 +1,7 @@
 
 import  cv2
 import numpy as np
+import time
 
 #import clasif as cl
 import clasificador as c
@@ -46,7 +47,9 @@ while (capture.isOpened()):
      #if tipo is not None:
      #cv2.putText (img [h:,: ],texto [tipo],(0,img [h:,:].shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),1)
 
+    #st = time.time()
     entrada,salida = a.entrada_salida (cats,entrada)
+    #print(time.time()-st)
     cv2.circle(img,(entrada [0],entrada [1]+h),3,(0,255,0),-1)
     cv2.circle(img,(salida [0],salida [1]+h),3,(0,0,255),-1)
     video.write (img)
