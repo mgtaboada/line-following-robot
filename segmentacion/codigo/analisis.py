@@ -1,6 +1,7 @@
 #coding: utf-8
 import cv2
 import numpy as np
+import time
 
 LINEA_RECTA = 0
 CURVA_DERECHA = 1
@@ -10,11 +11,13 @@ TRES_SALIDAS= 4
 
 
 def in_border (img):
-    np.savetxt ("img.txt",img)
+    #np.savetxt ("img.txt",img)
+    #st = time.time()
     mask = np.zeros (img.shape)
     mask [1:-1,1:-1]=1
     mask = mask.astype (bool)
     img [mask] = 0
+    #print(time.time()-st)
     return np.array (np.where (img == 1))
 
 def chull_area(chull):
@@ -71,16 +74,18 @@ def tipo_linea(img):
 
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
 
+
     _, conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     n_conts = 0
     for cont in conts:
         if cv2.contourArea (cont) > 100: # 10*10
             n_conts +=1
     if n_conts == 4:
+
         return TRES_SALIDAS
     if n_conts == 3:
         return DOS_SALIDAS
-    _, conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
     if len (conts) == 0:
         return None
