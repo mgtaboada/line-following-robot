@@ -73,9 +73,7 @@ def tipo_linea(img):
     cv2.imshow("Imagen limpiada",cv2.cvtColor(paleta[img],cv2.COLOR_RGB2BGR))
 
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
-
-
-    _, conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     n_conts = 0
     for cont in conts:
         if cv2.contourArea (cont) > 100: # 10*10
@@ -125,7 +123,7 @@ def direccion_flecha(bi):
               m: pendiente de la flecha, para no tener que volver a calcularla
               c: ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
 '''
-    _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
     area = cv2.contourArea(arrow)
     for cont in conts:
@@ -139,15 +137,17 @@ def direccion_flecha(bi):
     h,_,w = arrow.shape
     #points = np.array(np.where(bi==1))
     points = np.reshape(arrow,(h,w)).T
-
+    print("VX:{},  VY:{}".format(vx,vy))
     m = vy/vx
     mm = -1/m if m != 0 else 0
     c = y - (m*x)
     cc = y-((mm*x))
+    print("M:{},  C:{}".format(m,c))
+    orig = (x,y)
 
     p1 = (x,y)
-    p2 = (x+30, m*(x+30)+c) #positive direction
-    p3 = (x+30, mm*(x+30)+cc)
+    p2 = (x+1, m*(x+1)+c) #positive direction
+
     if m < 0:
     #     m=-m
          aux = p1
@@ -159,17 +159,46 @@ def direccion_flecha(bi):
 
 
     #print("M: {}\nC: {}\nMM:{}\nCC: {}\np1: {}".format(m[0],c,mm,cc,np.array(p1).T))
-    if carea(pos[:,0],pos[:,1]) > carea(neg[:,0],neg[:,1]):
+    if carea(pos[:,0],pos[:,1]) <= carea(neg[:,0],neg[:,1]):
         #print('{}>{}'.format(pos,neg))
-        return p1,p2,m,c
-    else:
-        #print('{}<{}'.format(pos,neg))
-        return p2,p1,m,c
+         aux = p1
+         p1 = p2
+         p2 = aux
+
+    x = p2[0] - p1[0]
+    y = p2[1] - p1[1]
+
+    h,w = bi.shape
+
+    mask = np.ones (bi.shape)
+    #print(time.time()-st)
+    if x>0 and y > 0:
+        # Primer cuadrante
+        mask[h//2:,-1] =0
+        mask[-1,y//2:] =0
+    if x<0 and y > 0:
+        # Segundo cuadrante
+        mask[:h//2,-1] =0
+        mask[-1,y//2:] =0
+    if x<0 and y < 0:
+        # Tercer cuadrante
+        mask[:h//2,-1] =0
+        mask[-1,:y//2] =0
+    if x>0 and y < 0:
+        # Cuarto cuadrante
+        mask[:h//2,-1] =0
+        mask[-1,:y//2] =0
+
+    bi[mask.astype(bool)] = 0
+    return np.array(np.where(bi==1))
 
 def entrada_salida (img,anterior_entrada=None):
     linea = (img == 2).astype (np.uint8)
     flecha = (img == 0).astype (np.uint8)
     h,w = linea.shape
+
+    tipo =tipo_linea (linea)
+
     # Suponemos que está cerca del centro
     if anterior_entrada is None:
         anterior_entrada = np.array ((h,w/2))
@@ -184,41 +213,23 @@ def entrada_salida (img,anterior_entrada=None):
     salida = (0,0)
 
     # buscar la salida
-    tipo =tipo_linea (linea)
+
+
     if tipo is None:
         return (0,0),(0,0)
-    if tipo < DOS_SALIDAS:      # es una sola linea
+
+    if tipo != DOS_SALIDAS and tipo != TRES_SALIDAS:      # es una sola linea
         # La salida tiene que estar separada de la entrada
         lejano = np.argmax (distancias)
         salida = bordes [lejano]
     else: # debería haber una flecha
         if np.any (flecha==1):
-            p1,p2,m,c = direccion_flecha (flecha)
-            xo = 0
-            yo = 0
-            if p1 [0] < p2 [0]:
-                # sentido positivo en las x -> buscamos el final
-                xo = w
-            elif p1 [0] == p2 [0]:
-                #vertical, usamos la misma x
-                xo = p1 [0]
+            bordes = direccion_flecha (flecha)
 
-
-            if p1 [1] < p2 [1]:
-                # sentido positivo en las y -> buscamos el final
-                yo=h
-            elif p1 [1] == p2 [1]:
-                #horizontal, usamos la misma y
-                yo = p1 [1]
-            #calculamos por donde sale la recta
-            y = m*xo + c
-            if y >= h or y < 0:
-                xo = (yo-c)/m
-            else:
-                yo = y
             #encontramos el punto mas cercano
-            distancias = np.sum((bordes - (yo,xo))**2, axis=1)
-            if np.size (distancias)> 0:
-                cercano = np.argmin (distancias)
-                salida = bordes [cercano]
+            #distancias = np.sum((bordes - entrada)**2, axis=1)
+            if  np.size (bordes)> 0:
+             #   cercano = np.argmin (distancias)
+                salida = np.mean(bordes,axis=0) #bordes [cercano]
+
     return (entrada [1],entrada [0]),(salida [1],salida [0])

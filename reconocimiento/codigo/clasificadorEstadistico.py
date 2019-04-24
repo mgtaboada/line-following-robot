@@ -67,26 +67,26 @@ class clasificadorEstadistico:
         retorna una matriz, cada fila almacena los valores pertenencia""" 
         
         #Calcula el grado de pertenencia. Por cada clase con todos los objetos.
-        i = 0 #Indice por la clase que toca
+        
+        i ={'i': 0} #Indice por la clase que toca
         def di(w):
-            
-            nonlocal i
+            j = i['i']
             #p1 => primera parte de la ecuacion -1/2 * ln(det(E_ag))
-            p1 = self.__lndetcov(self.covs_l_g[i])/-2
+            p1 = self.__lndetcov(self.covs_l_g[j])/-2
             
             #P3 => calcula el log(priori)
             #p3 = np.log(self.priors[i])
-            p3 = self.priors[i]
+            p3 = self.priors[j]
             p13 = np.sum([p1,p3])
             
             #g => (X-mu_i)
-            g = X-self.means[i]
+            g = X-self.means[j]
             
             #p2 calcula (X-mu_i)^T * E_ag^-1 * (X-mu_i)
-            p2 = g.dot(np.linalg.inv(self.covs_l_g[i]))
+            p2 = g.dot(np.linalg.inv(self.covs_l_g[j]))
             p2 = (p2*g).sum(1) #Esta ultima parte se hace asi ya que dot no es capaz de aplicarlo adecuadamente 
             p2 = p2/-2
-            i = i + 1
+            i['i'] += 1
             
             #Se suma todo
             

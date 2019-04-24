@@ -2,6 +2,7 @@ import numpy as np
 import pickle #Cargar los datos
 import clasificadorNN as c
 import clasificadorEstadistico as m
+import sklearn.neighbors as n
 
 
 with open("datasetFiguras", 'rb') as f:
@@ -11,6 +12,13 @@ with open("datasetEtiquetasFiguras", 'rb') as f:
 
 dataset = np.array(dataset)
 dataset_etiquetas = np.array(dataset_etiquetas)
+
+n1n= n.KNeighborsClassifier(1)
+skmaha = n.KNeighborsClassifier(1,algorithm='brute',metric='mahalanobis',metric_params={'V':np.cov(dataset)})
+
+n1n.fit(dataset,dataset_etiquetas)
+skmaha.fit(dataset,dataset_etiquetas)
+
 nn = c.clasificadorNN(dataset_etiquetas)
 nn.fit(dataset,dataset_etiquetas)
 
@@ -49,6 +57,79 @@ def evalClassifier(classif, Xtrain, ytrain, Xtest, ytest,printOutput=True):
         print("\n")
     return errors
 
-evalClassifier(nn,dataset,dataset_etiquetas,dataset,dataset_etiquetas)
-evalClassifier(maha,dataset,dataset_etiquetas,dataset,dataset_etiquetas)
+def leave_one_out_sk(classif,dataset,dataset_etiquetas):
+    err = 0
+    for k in range(len(dataset)):
+        if k == 0:
+            test = dataset[0]
+            testl = dataset_etiquetas[0]
+            train = dataset[1:]
+            trainl = dataset_etiquetas[1:]
+        elif k == len(dataset)-1:
+            test = dataset[-1]
+            testl = dataset_etiquetas[-1]
+            train = dataset[:-1]
+            trainl = dataset_etiquetas[:-1]
+
+        else:
+            test = dataset[k]
+            testl = dataset_etiquetas[k]
+            train = np.concatenate((dataset[:k],dataset[k+1:]))
+            trainl = np.concatenate((dataset_etiquetas[:k],dataset_etiquetas[k+1:]))
+        classif.fit(train,trainl)
+        pred = classif.predict([test])
+       
+        if pred[0] == testl:
+            err +=1
+    print("Aciertos: {} sobre un total de {} ({:.02f}%)".format(err,len(dataset),(float(err)/len(dataset))*100))
+
+def leave_one_out_our(classif,dataset,dataset_etiquetas):
+    err = 0
+    for k in range(len(dataset)):
+        if k == 0:
+            test = dataset[0]
+            testl = dataset_etiquetas[0]
+            train = dataset[1:]
+            trainl = dataset_etiquetas[1:]
+        elif k == len(dataset)-1:
+            test = dataset[-1]
+            testl = dataset_etiquetas[-1]
+            train = dataset[:-1]
+            trainl = dataset_etiquetas[:-1]
+
+        else:
+            test = dataset[k]
+            testl = dataset_etiquetas[k]
+            train = np.concatenate((dataset[:k],dataset[k:]))
+            trainl = np.concatenate((dataset_etiquetas[:k],dataset_etiquetas[k:]))
+        classif.fit(train,trainl)
+        pred = classif.predLabel([test])
+       
+        if pred[0] == testl:
+            err +=1
+    print("Aciertos: {} sobre un total de {} ({:.02f}%)".format(err,len(dataset),(float(err)/len(dataset))*100))    
+
+#evalClassifier(nn,dataset,dataset_etiquetas,dataset,dataset_etiquetas)
+#evalClassifier(maha,dataset,dataset_etiquetas,dataset,dataset_etiquetas)
+
+print("""###########################
+# Sklearn nearest neighbor #
+###########################""")
+leave_one_out_sk(n1n,dataset,dataset_etiquetas)
+print("""
+################################
+# Sklearn mahalanobis distance #
+################################""")
+leave_one_out_sk(skmaha,dataset,dataset_etiquetas)
+
+print("""
+########################
+# Our nearest neighbor #
+########################""")
+leave_one_out_our(nn,dataset,dataset_etiquetas)
+print("""
+############################
+# Our mahalanobis distance #
+############################""")
+leave_one_out_our(maha,dataset,dataset_etiquetas)
 

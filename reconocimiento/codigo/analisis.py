@@ -36,12 +36,22 @@ def limpiar_img(img):
     """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
 
     img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
-    devuelve otra imagen
+    devuelve otra imagen binaria en la que solo aparece el contorno más grande
     """
+    res = np.zeros(img.shape)
+    #_,
+    conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    biggest = conts[0]
+    area = cv2.contourArea(biggest)
+    for cont in conts:
+        new_area = cv2.contourArea(cont)
+        if new_area > area:
+            biggest = cont
+            area = new_area
 
-    paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
-    median = cv2.medianBlur(img,11)
-    return (median == 1).astype(np.uint8)
+    #res[biggest] = 1
+    cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    return res.astype(np.uint8)
     '''
     umbral_area = 0.1 # Porcentaje minimo que tiene que ocupar el contorno para considerarse linea
     _, conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
