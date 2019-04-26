@@ -29,8 +29,8 @@ def carea(x,y):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
 def en_borde(cont,shape):
-    y,x = shape
-    return np.any(cont == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
+    x,y = shape
+    return np.any(cont[:,0,:] == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
 
 def limpiar_img(img):
     """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
@@ -50,7 +50,8 @@ def limpiar_img(img):
             area = new_area
 
     #res[biggest] = 1
-    cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    if not en_borde(biggest,img.shape):
+        cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
     '''
     umbral_area = 0.1 # Porcentaje minimo que tiene que ocupar el contorno para considerarse linea
