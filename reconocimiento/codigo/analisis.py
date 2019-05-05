@@ -41,8 +41,8 @@ def limpiar_img(img):
     res = np.zeros(img.shape)
     #_,
     conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-    biggest = conts[0]
-    area = cv2.contourArea(biggest)
+    biggest = None
+    area = 1000
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -50,9 +50,11 @@ def limpiar_img(img):
             area = new_area
 
     #res[biggest] = 1
-    if not en_borde(biggest,img.shape):
-        cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    if biggest is not None and not en_borde(biggest,img.shape):
+            cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
+
+
     '''
     umbral_area = 0.1 # Porcentaje minimo que tiene que ocupar el contorno para considerarse linea
     _, conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
