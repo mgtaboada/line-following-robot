@@ -1,0 +1,15 @@
+[brain]
+file=BrainRobot.py
+
+[pyrobot]
+gui=TK
+
+[robot]
+file=PyrobotRobot.py
+
+[world]
+file=Challenge1.py
+
+[simulator]
+file=PyrobotSimulator
+

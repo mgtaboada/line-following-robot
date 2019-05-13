@@ -11,7 +11,7 @@ import pickle #Cargar los datos
 import sklearn.neighbors as n
 
 
-CAPTURE = 0
+CAPTURE =0
 
 class BrainTestNavigator(Brain):
   #estados
@@ -38,7 +38,7 @@ class BrainTestNavigator(Brain):
   Ki_v = 0.0
   Kd_v = 0.13
   
-  Kp_r = 0.19
+  Kp_r = 1 
   Ki_r = 0.00
   Kd_r = 0.1332
   total_error = 0.0
@@ -62,20 +62,26 @@ class BrainTestNavigator(Brain):
   def setup_capture(self):
     global CAPTURE
     self.capture = cv2.VideoCapture(CAPTURE)
+    self.capture.set(3,360)
+    self.capture.set(4,270)
     self.cl = c.Clasificador()
     self.entrada = None
+    _,img = self.capture.read()
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
-    self.video = cv2.VideoWriter("resultado.avi",fourcc,1,(img.shape[1],img.shape[0]))
-    self.segmentancion = cv2.VideoWriter("segmentacion.avi",fourcc,1,(img.shape[1],img.shape[0]))
+    self.video = cv2.VideoWriter("resultado.avi",fourcc,8,(img.shape[1],img.shape[0]))
+    self.segmentacion = cv2.VideoWriter("segmentacion.avi",fourcc,8,(img.shape[1],img.shape[0]))
+
+
     
   def setup_recog(self):
-    with open("datasetFiguras", 'rb') as f:
-      dataset = pickle.load(f)
-    with open("datasetEtiquetasFiguras", 'rb') as f:
-      dataset_etiquetas = pickle.load(f)
-    self.skmaha = n.KNeighborsClassifier(1,algorithm='brute',metric='mahalanobis',metric_params={'V':np.cov(dataset)})
+    pass
+    # with open("datasetFiguras", 'rb') as f:
+    #   dataset = pickle.load(f)
+    # with open("datasetEtiquetasFiguras", 'rb') as f:
+    #   dataset_etiquetas = pickle.load(f)
+    # self.skmaha = n.KNeighborsClassifier(1,algorithm='brute',metric='mahalanobis',metric_params={'V':np.cov(dataset)})
 
-    self.skmaha.fit(dataset,dataset_etiquetas)
+    # self.skmaha.fit(dataset,dataset_etiquetas)
 
   def setup(self):
     self.robot.range.units = "ROBOTS"
@@ -85,6 +91,7 @@ class BrainTestNavigator(Brain):
     self.setup_spiral()
     self.setup_avoid()
     self.setup_capture()
+    self.setup_recog()
     self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa,
             self.SEGUIR_OBJETO:self.seguir_objeto, self.GIRAR_ESQUINA:self.girar_esquina}
   def _n_cycles(self):
@@ -152,12 +159,12 @@ class BrainTestNavigator(Brain):
       if self.ticks_en_linea >= 5:
         self.estado = self.NOVENTA
         self.orientacion_0 = self.robot.th
-        self.step_noventa()
+        ##self.step_noventa()
       else:
         self.ticks_en_linea = 0
         self.estado = self.SPIRAL
         #self.setup_spiral()
-        self.step_spiral()
+        ##self.step_spiral()
       # if self.linepos == -1: # la linea esta a la izquierda
       #   self.rotacion =- 0.5 # girar a la derecha
       # elif self.linepos == 1:
@@ -176,37 +183,46 @@ class BrainTestNavigator(Brain):
       ret,img = self.capture.read()
       if not ret:
         return hasLine,lineDistance,icon
-      cv2.waitKey(1)
-      h = int(img.shape[0]*0.3)
+      h = int(img.shape[0]*0)
       cats = self.cl.classif_img(img[h:,:])
       lin = (cats ==2).astype (np.uint8)
       mar = (cats == 0).astype(np.uint8)
       tipo = a.tipo_linea(lin)
-      paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
-      self.segmentancion.write(paleta[cats])
+      paleta = np.array([[0,0,255],[0,0,0],[255,0,0],[0,0,0]],dtype=np.uint8)
+      seg = paleta[lin]
       if (tipo <a.DOS_SALIDAS) and np.any(mar): #  una sola linea
         # si hay marca es un icono
         sym = a.limpiar_img(mar)
-      
+
         grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
         _, binary_img = cv2.threshold(grayscale_img, 20, 255, cv2.THRESH_BINARY)
-        
         _,conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-        
+        #conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
         if len(conts) > 0:
             moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
-            icon = self.skmaha.predict([moments])[0]
-            self.entrada, salida = a.entrada_salida(lin,self.entrada)
-            half = img.shape[1]/2
-            lineDistance = (abs(salida[0]-half))
-            cv2.circle(img,(0,salida),10,(0,255,0),-1)
-        if not np.any(lin):
-          hasLine = False
-        else:
-          hasLine = True
-    self.video.write(img)
-    return hasLine,lineDistance,icon
+            #icon = self.skmaha.predict([moments])[0]
+            icon = None
+      if not np.any(lin):
+        hasLine = False
+      else:
+        hasLine = True
+        half = float(img.shape[1]/2)
+        self.entrada, salida = a.entrada_salida(cats,self.entrada)
+        lineDistance = ((half-salida[0]))/half
+        cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,(0,255,0),3)
+        cv2.circle(img,(salida[0],0),3,(0,255,0),-1)
+        cv2.circle(img,(self.entrada[0],img.shape[1]),3,(0,255,0),-1)
+      if np.any(mar):
+         p1,p2,_,_ = a.direccion_flecha(mar)
+         cv2.arrowedLine(img,p1,p2,(255,255,255),3)
   
+    self.segmentacion.write(paleta[cats])
+    #cv2.imshow("segmentacion",paleta[lin])
+    #cv2.imshow("video",img)
+    self.video.write(img)
+    cv2.waitKey(1)
+    return hasLine,lineDistance,icon
+
   def step_spiral(self):
     print "SPIRAL"
     global hasLine
@@ -273,9 +289,9 @@ class BrainTestNavigator(Brain):
     global lineDistance
     self.distancias_ultrasonidos()
     hasLine,lineDistance,icon = self.step_capture()
-    print "I got from the simulation",hasLine,lineDistance,icon
-    print self.estado
-    self.estados[self.estado]()
+    #print "I got from the simulation",hasLine,lineDistance,icon
+    #print self.estado
+    self.estados[self.LINEA]()
     self.move(self.velocidad,self.rotacion)
  
 def INIT(engine):

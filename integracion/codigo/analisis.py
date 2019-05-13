@@ -39,7 +39,6 @@ def limpiar_img(img):
     devuelve otra imagen binaria en la que solo aparece el contorno más grande
     """
     res = np.zeros(img.shape)
-    #_,
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
     area = 1000
@@ -50,7 +49,7 @@ def limpiar_img(img):
             area = new_area
 
     #res[biggest] = 1
-    if biggest is not None and not en_borde(biggest,img.shape):
+    if biggest is not None: # and not en_borde(biggest,img.shape):
             cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
 
@@ -63,10 +62,7 @@ def tipo_linea(img):
 
     """
     thres = 0.2 # Porcentaje de cierre convexo que no es linea para considerar linea recta
-    img = limpiar_img(img)
-
-    #paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
-    #cv2.imshow("Imagen limpiada",cv2.cvtColor(paleta[img],cv2.COLOR_RGB2BGR))
+    #img = limpiar_img(img)
 
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
 
@@ -80,10 +76,12 @@ def tipo_linea(img):
         return TRES_SALIDAS
     if n_conts == 3:
         return DOS_SALIDAS
-    _,conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    _, conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
     if len (conts) == 0:
+        print("No conts")
         return None
+    print("Algun cont")
     #suponemos que la linea es el contorno con la mayor area
     line =conts[0]
     area = cv2.contourArea(line)
@@ -111,7 +109,6 @@ def tipo_linea(img):
         return CURVA_DERECHA
     return CURVA_IZQUIERDA
 
-
 def direccion_flecha(bi):
     '''Devuelve la direccion de la flecha
     bi: imagen binaria donde los 1's son pixeles de la flecha y los 0's de otra cosa
@@ -121,6 +118,7 @@ def direccion_flecha(bi):
               c: ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
 '''
     _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    #conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
     area = cv2.contourArea(arrow)
     for cont in conts:
@@ -169,7 +167,6 @@ def entrada_salida (img,anterior_entrada=None):
     # Suponemos que está cerca del centro
     if anterior_entrada is None:
         anterior_entrada = np.array ((h,w/2))
-        
     bordes = in_border (linea).T
     distancias = np.sum((bordes - anterior_entrada)**2, axis=1)
     if np.size (distancias)> 0:
@@ -182,12 +179,15 @@ def entrada_salida (img,anterior_entrada=None):
     # buscar la salida
     tipo =tipo_linea (linea)
     if tipo is None:
+        print("Tipo None")
         return (0,0),(0,0)
     if tipo < DOS_SALIDAS:      # es una sola linea
         # La salida tiene que estar separada de la entrada
+        print("Una linea")
         lejano = np.argmax (distancias)
         salida = bordes [lejano]
     else: # debería haber una flecha
+        print("Cruce")
         if np.any (flecha==1):
             p1,p2,m,c = direccion_flecha (flecha)
             xo = 0
@@ -198,8 +198,6 @@ def entrada_salida (img,anterior_entrada=None):
             elif p1 [0] == p2 [0]:
                 #vertical, usamos la misma x
                 xo = p1 [0]
-
-
             if p1 [1] < p2 [1]:
                 # sentido positivo en las y -> buscamos el final
                 yo=h
