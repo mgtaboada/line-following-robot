@@ -41,7 +41,8 @@ def limpiar_img(img):
     res = np.zeros(img.shape)
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
-    area = 1000
+    area = 30*30 
+    #print("Min area: {}".format(area))
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -50,6 +51,27 @@ def limpiar_img(img):
 
     #res[biggest] = 1
     if biggest is not None: # and not en_borde(biggest,img.shape):
+            cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    return res.astype(np.uint8)
+
+def encontrar_icono(img):
+    """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
+
+   img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
+    devuelve otra imagen binaria en la que solo aparece el contorno más grande
+    """
+    res = np.zeros(img.shape)
+    _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    biggest = None
+    area = 10 
+    for cont in conts:
+        new_area = cv2.contourArea(cont)
+        if new_area > area:
+            biggest = cont
+            area = new_area
+
+    #res[biggest] = 1
+    if biggest is not None and not en_borde(biggest,img.shape):
             cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
 
@@ -109,16 +131,19 @@ def tipo_linea(img):
         return CURVA_DERECHA
     return CURVA_IZQUIERDA
 
-def direccion_flecha(bi):
+def direccion_flecha(im):
     '''Devuelve la direccion de la flecha
-    bi: imagen binaria donde los 1's son pixeles de la flecha y los 0's de otra cosa
+    im: imagen binaria donde los 1's son pixeles de la flecha y los 0's de otra cosa
 
     devuelve: p1, p2: puntos por los que pasa la flecha. En sentido p1->p2
               m: pendiente de la flecha, para no tener que volver a calcularla
               c: ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
 '''
+    bi = encontrar_icono(im)
     _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     #conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    if len(conts) == 0:
+       return None,None,None,None
     arrow =conts[0]
     area = cv2.contourArea(arrow)
     for cont in conts:
@@ -179,8 +204,8 @@ def entrada_salida (img,anterior_entrada=None):
     # buscar la salida
     tipo =tipo_linea (linea)
     if tipo is None:
-        print("Tipo None")
-        return (0,0),(0,0)
+        #print("Tipo None")
+        return None,None
     if tipo < DOS_SALIDAS:      # es una sola linea
         # La salida tiene que estar separada de la entrada
         print("Una linea")
@@ -190,6 +215,8 @@ def entrada_salida (img,anterior_entrada=None):
         print("Cruce")
         if np.any (flecha==1):
             p1,p2,m,c = direccion_flecha (flecha)
+            if p1 is None:
+                return None,None
             xo = 0
             yo = 0
             if p1 [0] < p2 [0]:

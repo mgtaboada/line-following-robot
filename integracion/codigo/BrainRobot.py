@@ -12,7 +12,7 @@ import sklearn.neighbors as n
 
 
 CAPTURE =0
-
+thresh_turn = 20
 class BrainTestNavigator(Brain):
   #estados
   SPIRAL = 0
@@ -34,7 +34,7 @@ class BrainTestNavigator(Brain):
   HARD_RIGHT = -1.0
   NO_ERROR = 0
 
-  Kp_v = 0.9
+  Kp_v =0.9
   Ki_v = 0.0
   Kd_v = 0.13
   
@@ -66,6 +66,9 @@ class BrainTestNavigator(Brain):
     self.capture.set(4,270)
     self.cl = c.Clasificador()
     self.entrada = None
+    self.estado_capture="una linea"
+    self.salida_flecha = None
+    self.cnt_una = 0 # contador para cuantos frames lleva de una linea
     _,img = self.capture.read()
     fourcc = cv2.VideoWriter_fourcc(*"XVID")
     self.video = cv2.VideoWriter("resultado.avi",fourcc,8,(img.shape[1],img.shape[0]))
@@ -183,7 +186,7 @@ class BrainTestNavigator(Brain):
       ret,img = self.capture.read()
       if not ret:
         return hasLine,lineDistance,icon
-      h = int(img.shape[0]*0)
+      h = int(img.shape[0]*0.3)
       cats = self.cl.classif_img(img[h:,:])
       lin = (cats ==2).astype (np.uint8)
       mar = (cats == 0).astype(np.uint8)
@@ -192,8 +195,7 @@ class BrainTestNavigator(Brain):
       seg = paleta[lin]
       if (tipo <a.DOS_SALIDAS) and np.any(mar): #  una sola linea
         # si hay marca es un icono
-        sym = a.limpiar_img(mar)
-
+        sym = a.encontrar_icono(mar)
         grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
         _, binary_img = cv2.threshold(grayscale_img, 20, 255, cv2.THRESH_BINARY)
         _,conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
@@ -202,16 +204,53 @@ class BrainTestNavigator(Brain):
             moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
             #icon = self.skmaha.predict([moments])[0]
             icon = None
+      if tipo < a.DOS_SALIDAS:
+          self.cnt_una +=1
+          tcolor = (255,0,0)
+          if self.cnt_una > thresh_turn:
+             self.estado_capture="una linea"
+             tcolor = (0,255,0)
+      if tipo >= a.DOS_SALIDAS or self.cnt_una < thresh_turn:
+          if self.estado_capture != "flecha":
+             self.salida_flecha = None
+          if tipo >= a.DOS_SALIDAS:
+             self.cnt_una = 0
+             tcolor = (255,0,255)
+          self.estado_capture="flecha"      
       if not np.any(lin):
         hasLine = False
       else:
         hasLine = True
         half = float(img.shape[1]/2)
-        self.entrada, salida = a.entrada_salida(cats,self.entrada)
+        entrada, salida = a.entrada_salida(cats,self.entrada)
+        if self.estado_capture == "flecha":
+            if self.salida_flecha is None:
+               entrada, salida = a.entrada_salida(cats,self.entrada)
+               self.salida_flecha = salida
+            salida = self.salida_flecha
+        else:
+            entrada, salida = a.entrada_salida(cats,self.entrada)
+        if salida is not None:
+            self.salida = salida
+            self.entrada = entrada
+        else:
+            salida = self.salida
+        ''' if self.estado_capture == "una linea" or self.salida_flecha is None:
+            if self.salida_flecha is None:
+                self.salida_flecha = salida
+        else:
+            self.salida_flecha = salida
+            self.salida = salida
+        if salida is not None:
+             self.entrada=entrada
+             self.salida=salida
+        else:
+             salida = self.salida'''
         lineDistance = ((half-salida[0]))/half
-        cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,(0,255,0),3)
+        cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,tcolor,3)
+        cv2.putText(img,"{}({})".format(self.estado_capture,self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
         cv2.circle(img,(salida[0],0),3,(0,255,0),-1)
-        cv2.circle(img,(self.entrada[0],img.shape[1]),3,(0,255,0),-1)
+        cv2.circle(img,(self.entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
       if np.any(mar):
          p1,p2,_,_ = a.direccion_flecha(mar)
          cv2.arrowedLine(img,p1,p2,(255,255,255),3)
