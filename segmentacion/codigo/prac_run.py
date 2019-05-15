@@ -42,10 +42,9 @@ while (capture.isOpened()):
 
     flecha = cats == 0
     if np.any (flecha):
-        bordes = a.direccion_flecha ((flecha).astype (np.uint8))
-        for p in bordes.T:
-            cv2.circle(img,tuple(p+(0,h),1,(0,255,0),-1))
-     #   cv2.arrowedLine(img [h:,:],f1,f2,(0,0,255),4)
+        f1,f2,salida = a.direccion_flecha ((flecha).astype (np.uint8))
+        cv2.circle(img[h:,:],salida,10,(255,0,255),-1)
+        cv2.arrowedLine(img [h:,:],f1,f2,(0,0,255),4)
      #if tipo is not None:
      #cv2.putText (img [h:,: ],texto [tipo],(0,img [h:,:].shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),1)
 
