@@ -21,7 +21,7 @@ class BrainTestNavigator(Brain):
   NOVENTA = 3
   SEGUIR_OBJETO = 4
   GIRAR_ESQUINA = 5
-  
+
   NO_FORWARD = 0
   SLOW_FORWARD = 0.1
   MED_FORWARD = 0.5

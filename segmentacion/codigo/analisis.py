@@ -29,8 +29,32 @@ def carea(x,y):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
 def en_borde(cont,shape):
-    y,x = shape
-    return np.any(cont == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
+    x,y = shape
+    return np.any(cont[:,0,:] == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
+
+def encontrar_icono(img):
+    """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
+
+   img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
+    devuelve otra imagen binaria en la que solo aparece el contorno más grande
+    """
+    res = np.zeros(img.shape)
+    #_,
+    conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    biggest = None
+    area = 10
+    for cont in conts:
+        new_area = cv2.contourArea(cont)
+        if new_area > area:
+            biggest = cont
+            area = new_area
+
+    #res[biggest] = 1
+    if biggest is not None and not en_borde(biggest,img.shape):
+            cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
+    cv2.imshow("Icono",cv2.cvtColor(paleta[res.astype(np.uint8)],cv2.COLOR_RGB2BGR))
+    return res.astype(np.uint8)
 
 def limpiar_img(img):
     """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
@@ -73,7 +97,8 @@ def tipo_linea(img):
     cv2.imshow("Imagen limpiada",cv2.cvtColor(paleta[img],cv2.COLOR_RGB2BGR))
 
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
-    _,conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    #_,
+    conts, hier = cv2.findContours((img == 0).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     n_conts = 0
     for cont in conts:
         if cv2.contourArea (cont) > 100: # 10*10
@@ -83,7 +108,8 @@ def tipo_linea(img):
         return TRES_SALIDAS
     if n_conts == 3:
         return DOS_SALIDAS
-    _,conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    #_,
+    conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
     if len (conts) == 0:
         return None
@@ -123,7 +149,9 @@ def direccion_flecha(bi):
               m: pendiente de la flecha, para no tener que volver a calcularla
               c: ordenada en el origen de la recta que contiene a la  flecha, para no tener que volver a calcularla
 '''
-    _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+
+    ##_,
+    conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
     area = cv2.contourArea(arrow)
     for cont in conts:
@@ -134,48 +162,75 @@ def direccion_flecha(bi):
 
 
     [vx,vy,x,y] = cv2.fitLine(arrow,cv2.DIST_L2,0,0.01,0.01)
+    # (x,y) es el punto medio
+    # vx,vy son los incrementos en x e y
+    p1 = (x,y)
     h,_,w = arrow.shape
     #points = np.array(np.where(bi==1))
     points = np.reshape(arrow,(h,w)).T
     print("VX:{},  VY:{}".format(vx,vy))
-    m = vy/vx
-    mm = -1/m if m != 0 else 0
-    c = y - (m*x)
-    cc = y-((mm*x))
-    #print("M:{},  C:{}".format(m,c))
-    orig = (x,y)
+    flecha_vertical=False
+    flecha_horizontal = False
+    if abs(vx) < 1e-6: # linea aproximadamente vertical
+        flecha_vertical=True
+        p2 = (p1[0],p1[1]+30)
+        pos = points.T[points[1] > y]
+        neg = points.T[points[1] <= y]
+    elif abs(vy) < 1e-6:# linea aproximadamente horizontal
+        flecha_horizontal=True
+        p2 = (p1[0]+30,p1[1])
+        pos = points.T[points[0] > x]
+        neg = points.T[points[0] <= x]
+    else:
+        m = vy/vx
+        mm = -1/m if m != 0 else 0
+        c = y - (m*x)
+        cc = y-((mm*x))
+        #print("M:{},  C:{}".format(m,c))
+        orig = (x,y)
 
-    p1 = (x,y)
-    p2 = (x+30, m*(x+30)+c) #positive direction
+        p2 = (x+30, m*(x+30)+c) #positive direction
+        if m < 0:
+            #     m=-m
+            aux = p1
+            p1 = p2
+            p2 = aux
 
-    if m < 0:
-    #     m=-m
-         aux = p1
-         p1 = p2
-         p2 = aux
+        pos = points.T[points[1] > cc+(mm*points[0])]
+        neg = points.T[points[1] <= cc+(mm*points[0])]
 
-    pos = points.T[points[1] > cc+(mm*points[0])]
-    neg = points.T[points[1] <= cc+(mm*points[0])]
-
-
-    #print("M: {}\nC: {}\nMM:{}\nCC: {}\np1: {}".format(m[0],c,mm,cc,np.array(p1).T))
+        #print("M: {}\nC: {}\nMM:{}\nCC: {}\np1: {}".format(m[0],c,mm,cc,np.array(p1).T))
     if carea(pos[:,0],pos[:,1]) <= carea(neg[:,0],neg[:,1]):
-        #print('{}>{}'.format(pos,neg))
-         aux = p1
-         p1 = p2
-         p2 = aux
+            #print('{}>{}'.format(pos,neg))
+        aux = p1
+        p1 = p2
+        p2 = aux
 
     h,w = bi.shape
     # la flecha apunta en sentido p1 -> p2
-    if p1[0]<p2[0]: # hacia la izquierda
+    if flecha_horizontal:
+        if p1[0] > p2[0]:
+            salida = (p1[0],0)
+        else:
+            salida = (p1[0],w-1)
+        return p1,p2,salida
+    if flecha_vertical:
+        if p1[1] > p2[1]:
+            salida = (p1[1],0)
+        else:
+            salida = (p1[1],w-1)
+        return p1,p2,salida
+    # Compruebo que la diferencia absouta sea de al menos uno para evitar errores por
+
+    if p1[0] - p2[0] > 1: # hacia la izquierda
         salida = (0,c) if c >=0 else ((-c//m),0)
-    elif p1[0]>p2[0]: # hacia la derercha
-        salida = (w,(m*w)+c) if m*w+c <= h else ((w-c)//m,h)
+    elif p1[0]- p2[0] < 1: # hacia la derercha
+        salida = (w-1,(m*w)+c) if m*w+c <= h else ((w-c)//m,h-1)
     else: # solo arriba o abajo          p2
-        if p1[1]>p2[1]: # hacia arriba:  |
+        if p1[1]<p2[1]: # hacia arriba:  |
             salida = (p1[0],0)        # p1
-        elif p1[1]<p2[1]: # hacia abajo
-            salida = (p1[0],w)
+        elif p1[1]>p2[1]: # hacia abajo
+            salida = (p1[0],w-1)
     return p1,p2,salida
 
 def entrada_salida (img,anterior_entrada=None):
@@ -203,13 +258,14 @@ def entrada_salida (img,anterior_entrada=None):
 
     if tipo is None:
         return (0,0),(0,0)
-
-    if tipo != DOS_SALIDAS and tipo != TRES_SALIDAS:      # es una sola linea
+    bi = encontrar_icono(flecha)
+    if not np.any (bi==1):
         # La salida tiene que estar separada de la entrada
         lejano = np.argmax (distancias)
         salida = bordes [lejano]
     else: # debería haber una flecha
-        if np.any (flecha==1):
+        bi = encontrar_icono(flecha)
+        if np.any (bi==1):
             _,_,salida_flecha = direccion_flecha (flecha)
             #encontramos el punto mas cercano
             distancias = np.sum((bordes - salida_flecha)**2, axis=1)
@@ -217,5 +273,6 @@ def entrada_salida (img,anterior_entrada=None):
                 cercano = np.argmin (distancias)
                 #salida = np.mean(bordes,axis=0)
                 salida = bordes [cercano]
+
 
     return (entrada [1],entrada [0]),(salida [1],salida [0])
