@@ -168,7 +168,7 @@ def direccion_flecha(bi):
     h,_,w = arrow.shape
     #points = np.array(np.where(bi==1))
     points = np.reshape(arrow,(h,w)).T
-    print("VX:{},  VY:{}".format(vx,vy))
+
     flecha_vertical=False
     flecha_horizontal = False
     if abs(vx) < 1e-6: # linea aproximadamente vertical
@@ -231,6 +231,7 @@ def direccion_flecha(bi):
             salida = (p1[0],0)        # p1
         elif p1[1]>p2[1]: # hacia abajo
             salida = (p1[0],w-1)
+
     return p1,p2,salida
 
 def entrada_salida (img,anterior_entrada=None):

@@ -1,7 +1,8 @@
+#coding:utf-8
 import  cv2
 import numpy as np
 import time
-
+import sys
 #import clasif as cl
 import clasificador as c
 
@@ -20,11 +21,17 @@ n = -1
 
 fourcc = cv2.VideoWriter_fourcc(*"XVID")
 video = cv2.VideoWriter("resultado.avi",fourcc,24,(img.shape[1],img.shape[0]))
+half = float(img.shape[1]/2)
+#  entrada: puntode entrada
+#  salida_final: salida que va a tomar el robot en esta iteración
+#  salida_mantener: salida que marcaba la última flecha que se encontró el robot
+#  cnt_una: contador de frames seguidos en los que ha aparecido una sola linea
+#  salidas_flecha: lista de todas las salidas que ha marcado la flecha
 
 entrada=None
 salida_mantener = None
-self_salidas_flecha = []
-cnt_una = 0
+salidas_flecha = []
+cnt_una = thresh_turn
 estado = "una linea"
 primero = True
 while (capture.isOpened()):
@@ -39,46 +46,45 @@ while (capture.isOpened()):
     lin = (cats ==2).astype (np.uint8)
     mar = a.encontrar_icono((cats ==0).astype (np.uint8))
     paleta = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
-    #cv2.imshow("Segmentacion Euclid",cv2.cvtColor(paleta[cats],cv2.COLOR_RGB2BGR))
-    #cv2.waitKey (10)
+
     # detecto tipo de linea
     tipo= a.tipo_linea (lin)
-
-    if tipo < a.DOS_SALIDAS:
+    if (tipo < a.DOS_SALIDAS): # una linea
+        sys.stdout.write("Veo una sola linea")
         cnt_una +=1
-        tcolor = (255,0,0)
-        if cnt_una > thresh_turn:
-            estado = "una linea"
-            tcolor = (0,255,0)
-
-    if (tipo >= a.DOS_SALIDAS and np.any(mar)):
-          if estado != "flecha":
-             self_salidas_flecha = []
-          if tipo >= a.DOS_SALIDAS:
-             cnt_una = 0
-             tcolor = (255,0,255)
-          estado="flecha"
-    half = float(img.shape[1]/2)
-    entrada, salida = a.entrada_salida(cats,self_entrada)
-    if primero:
-        self_salida = salida
-    if estado == "flecha":
-        entrada, salida = a.entrada_salida(cats,self_entrada)
-        self_salidas_flecha.append(salida)
-        salida = self_salidas_flecha[-1]
-
-        if salida is not None:
-            self_salida = salida
-            self_entrada = entrada
+        salidas_flecha = []
+        if cnt_una < thresh_turn: # lleva poco rato viendo una sola line
+            sys.stdout.write(", pero no la puedo seguir todavia\n")
+            tcolor = (255,0,0) # color azul
+            salida_final = salida_mantener
+        elif np.any(mar): # ve una flecha
+            sys.stdout.write(" y además un icono, que debe ser una marca\n")
+            # reconocer icono
+            pass
+        else: # lleva suficiente sin ver una flecha como para seguir solo la linea
+            sys.stdout.write(" y no hay cruces\n")
+            tcolor = (0,255,0) # color verde
+            entrada,salida_final = a.entrada_salida(cats,entrada)
+    else: # dos lineas
+        sys.stdout.write("Veo un cruce")
+        
+        if np.any(mar): # ve una flecha -> toma nota de su salida
+            sys.stdout.write(" y sigo la flecha")
+            tcolor = (255,0,255) # color morado
+            entrada,nueva_salida_flecha=a.entrada_salida(cats,entrada)
+            salidas_flecha.append(nueva_salida_flecha)
         else:
-            salida = self_salida
-    if estado == 'una linea' and self_salidas_flecha != []:
-        self_salida = np.median(np.array(self_salidas_flecha),axis=0).astype(int)
-        self_salidas_flecha = []
-        print(self_salida)
-        salida = self_salida
-    if estado =="una linea" and cnt_una < thresh_turn:
-        salida = self_salida
+            salidas_flecha = []
+        if salidas_flecha != []: # llevamos un rato viendo flecha
+            cnt_una = 0
+            sys.stdout.write(". Además veo la flecha desde hace rato {}\n".format(salidas_flecha))
+            salida_mantener =tuple(np.median(np.array(salidas_flecha),axis=0).astype(int))
+            salida_final = salida_mantener
+        else: # hemos perdido la flecha (¿Es posible?) -> seguimos como si fuera una linea
+            sys.stdout.write(", pero he perdido la flecha así que sigo como si nada\n")
+            entrada,salida_final = a.entrada_salida(cats,entrada)
+    if salida_final != None:
+        salida = salida_final
     lineDistance = ((half-salida[0]))/half
     cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,tcolor,3)
     cv2.putText(img,"{}({})".format(estado,cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
