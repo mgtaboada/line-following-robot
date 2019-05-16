@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 import time
-
+import sys
 LINEA_RECTA = 0
 CURVA_DERECHA = 1
 CURVA_IZQUIERDA = 2
@@ -15,8 +15,8 @@ def in_border (img):
     #st = time.time()
     mask = np.zeros (img.shape)
     mask [1:-1,1:-1]=1
-    mask = mask.astype (bool)
-    img [mask] = 0
+
+    img [mask.astype(bool)] = 0
     #print(time.time()-st)
     return np.array (np.where (img == 1))
 
@@ -212,25 +212,25 @@ def direccion_flecha(bi):
         if p1[0] > p2[0]:
             salida = (p1[0],0)
         else:
-            salida = (p1[0],w-1)
+            salida = (p1[0],w)
         return p1,p2,salida
     if flecha_vertical:
         if p1[1] > p2[1]:
             salida = (p1[1],0)
         else:
-            salida = (p1[1],w-1)
+            salida = (p1[1],w)
         return p1,p2,salida
     # Compruebo que la diferencia absouta sea de al menos uno para evitar errores por
 
     if p1[0] - p2[0] > 1: # hacia la izquierda
         salida = (0,c) if c >=0 else ((-c//m),0)
     elif p1[0]- p2[0] < 1: # hacia la derercha
-        salida = (w-1,(m*w)+c) if m*w+c <= h else ((w-c)//m,h-1)
+        salida = (w,(m*w)+c) if m*w+c <= h else ((w-c)//m,h)
     else: # solo arriba o abajo          p2
         if p1[1]<p2[1]: # hacia arriba:  |
             salida = (p1[0],0)        # p1
         elif p1[1]>p2[1]: # hacia abajo
-            salida = (p1[0],w-1)
+            salida = (p1[0],w)
 
     return p1,p2,salida
 
@@ -256,7 +256,6 @@ def entrada_salida (img,anterior_entrada=None):
 
     # buscar la salida
 
-
     if tipo is None:
         return (0,0),(0,0)
     bi = encontrar_icono(flecha)
@@ -267,13 +266,18 @@ def entrada_salida (img,anterior_entrada=None):
     else: # debería haber una flecha
         bi = encontrar_icono(flecha)
         if np.any (bi==1):
-            _,_,salida_flecha = direccion_flecha (flecha)
+            _,_,salida_flecha = direccion_flecha (bi)
+            salida_flecha = np.array([salida_flecha[0][0],salida_flecha[1]])
+            print("\nSalida flecha: {}\n".format(salida_flecha))
             #encontramos el punto mas cercano
             distancias = np.sum((bordes - salida_flecha)**2, axis=1)
+            print()
+            print(bordes)
+            exit
             if  np.size (bordes)> 0:
                 cercano = np.argmin (distancias)
                 #salida = np.mean(bordes,axis=0)
                 salida = bordes [cercano]
 
-
+    sys.stdout.write("[entrada salida] salida: {} ".format((salida[1],salida[0])))
     return (entrada [1],entrada [0]),(salida [1],salida [0])

@@ -67,11 +67,11 @@ while (capture.isOpened()):
             entrada,salida_final = a.entrada_salida(cats,entrada)
     else: # dos lineas
         sys.stdout.write("Veo un cruce")
-        
         if np.any(mar): # ve una flecha -> toma nota de su salida
             sys.stdout.write(" y sigo la flecha")
             tcolor = (255,0,255) # color morado
             entrada,nueva_salida_flecha=a.entrada_salida(cats,entrada)
+            sys.stdout.write(" para encontrar la salida: {}".format(nueva_salida_flecha))
             salidas_flecha.append(nueva_salida_flecha)
         else:
             salidas_flecha = []
