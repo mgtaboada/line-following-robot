@@ -141,7 +141,7 @@ def direccion_flecha(bi):
 '''
 
     ##_,
-    conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    _,conts,hier = cv2.findContours(bi*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     arrow =conts[0]
     area = cv2.contourArea(arrow)
     for cont in conts:
@@ -254,20 +254,16 @@ def entrada_salida (img,anterior_entrada=None):
         lejano = np.argmax (distancias)
         salida = bordes [lejano]
     else: # debería haber una flecha
-        bi = encontrar_icono(flecha)
-        if np.any (bi==1):
-            _,_,salida_flecha = direccion_flecha (bi)
-            salida_flecha = np.array([salida_flecha[0][0],salida_flecha[1]])
+         _,_,salida_flecha = direccion_flecha (bi)
+         salida_flecha = np.array([salida_flecha[0][0],salida_flecha[1]])
 
-            #encontramos el punto mas cercano
-            distancias = np.sum((bordes - salida_flecha)**2, axis=1)
-            print()
-            print(bordes)
-            exit
-            if  np.size (bordes)> 0:
-                cercano = np.argmin (distancias)
-                #salida = np.mean(bordes,axis=0)
-                salida = bordes [cercano]
-
+         #encontramos el punto mas cercano
+         distancias = np.sum((bordes - salida_flecha)**2, axis=1)
+         if  np.size (bordes)> 0 and np.size(distancias)>0:
+             cercano = np.argmin (distancias)
+             #salida = np.mean(bordes,axis=0)
+             salida = bordes [cercano]
+         else:
+             salida = salida_flecha
 
     return (entrada [1],entrada [0]),(salida [1],salida [0])
