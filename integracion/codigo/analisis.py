@@ -255,7 +255,8 @@ def entrada_salida (img,anterior_entrada=None):
         salida = bordes [lejano]
     else: # debería haber una flecha
          _,_,salida_flecha = direccion_flecha (bi)
-         salida_flecha = np.array([salida_flecha[0][0],salida_flecha[1]])
+         
+         salida_flecha = np.hstack(np.array(salida_flecha)) #array([salida_flecha[0][0],salida_flecha[1]])
 
          #encontramos el punto mas cercano
          distancias = np.sum((bordes - salida_flecha)**2, axis=1)

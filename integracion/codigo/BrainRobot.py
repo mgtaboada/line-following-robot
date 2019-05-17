@@ -1,3 +1,4 @@
+#coding: utf-8
 from pyrobot.brain import Brain
 
 import math
@@ -11,8 +12,9 @@ import pickle #Cargar los datos
 import sklearn.neighbors as n
 
 
+#CAPTURE ="/dev/video1"
 CAPTURE =0
-thresh_turn = 20
+thresh_turn = 10
 class BrainTestNavigator(Brain):
   #estados
   SPIRAL = 0
@@ -70,7 +72,8 @@ class BrainTestNavigator(Brain):
     #  salida_mantener: salida que marcaba la última flecha que se encontró el robot
     #  cnt_una: contador de frames seguidos en los que ha aparecido una sola linea
     #  salidas_flecha: lista de todas las salidas que ha marcado la flecha
-
+   
+    self.salida = None
     self.salida_mantener = None
     self.salidas_flecha = []
     self.entrada = None
@@ -166,6 +169,7 @@ class BrainTestNavigator(Brain):
       self.total_error += abs(lineDistance)
 
     else:
+      print("NO LINEA")
       if self.ticks_en_linea >= 5:
         self.estado = self.NOVENTA
         self.orientacion_0 = self.robot.th
@@ -189,77 +193,86 @@ class BrainTestNavigator(Brain):
 
   def step_capture(self):
     hasLine,lineDistance,icon = None,None,None
+    self.entrada = None
     if self.capture.isOpened():
       ret,img = self.capture.read()
       if not ret:
         return hasLine,lineDistance,icon
-      h = int(img.shape[0]*0.3)
+      h = int(img.shape[0]*0.2)
       cats = self.cl.classif_img(img[h:,:])
       lin = (cats ==2).astype (np.uint8)
       mar = a.encontrar_icono((cats == 0).astype(np.uint8))
       paleta = np.array([[0,0,255],[0,0,0],[255,0,0],[0,0,0]],dtype=np.uint8)
-
+      tcolor = (255,255,255)
+      salida_final = self.salida
       #Detecto tipo del inea
       tipo = a.tipo_linea(lin)
+      if tipo != None: 
+         hasLine = True
       if tipo == None:
         hasLine = False
       elif (tipo < a.DOS_SALIDAS): # una linea
-        hasLine = True
-        self.cnt_una +=1 # incremento contaddor
+        self.cnt_una +=1 # incremento contador
         self.salidas_flecha = [] # vacío lista de la ultima flecha
         if self.cnt_una < thresh_turn:
           # si llevo poco rato viendo una sola linea
           # mantengo la direccion de la ultima flecha
           tcolor = (255,0,0) # color azul
           salida_final = self.salida_mantener
-        elif np.any(mar):
-          # si hay marca es un icono
-          sym = mar
-          grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
-          _, binary_img = cv2.threshold(grayscale_img, 20, 255, cv2.THRESH_BINARY)
-          _,conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-          #conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-          if len(conts) > 0:
-            moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
-            #icon = self.skmaha.predict([moments])[0]
-            icon = None
         else:
-          # lleva suficiente tiempo sin ver una flecha como para
-          # volver a seguir la linea
-          tcolor = (0,255,0) # color verde
-          self.entrada,salida_final= a.entrada_salida(cats,self.entrada)
+	   if np.any(mar):
+             # si hay marca es un icono
+             
+             sym = mar
+             grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
+             _, binary_img = cv2.threshold(grayscale_img, 20, 255, cv2.THRESH_BINARY)
+             _,conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+             #conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+             if len(conts) > 0:
+               moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
+               #icon = self.skmaha.predict([moments])[0]
+               icon = None
+            # como los pixeles segmentados como flecha de cats son de una marca, los elimino
+             cats[cats==0]=1
+
+           # lleva suficiente tiempo sin ver una flecha como para
+           # volver a seguir la linea
+           tcolor = (0,255,0) # color verde
+           self.entrada,salida_final= a.entrada_salida(cats,self.entrada)
       else: # dos lineas
-        hasLine = True
+
         if np.any(mar):
           # veo una flecha -> la sigo y apunto para donde apunta
           tcolor = (255,0,255) # color morado
           self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada)
           self.salidas_flecha.append(nueva_salida_flecha)
+          salida_final = nueva_salida_flecha
         else:
           # no hay flecha -> vacío la lista
           self.salidas_flecha = []
+
         if self.salidas_flecha != []: # ya hemos visto la flecha
           self.cnt_una = 0
           self.salida_mantener =tuple(np.median(np.array(self.salidas_flecha),axis=0).astype(int))
-          salida_final = self.salida_mantener
         else:
-          # hemos perdido la flecha -> seguimos como si fuera una
-          # sola linea
-          self.entrada, salida_final = a.entrada_salida(cats,self.entrada)
-    if salida_final != None:
-      salida = salida_final
-    lineDistance = ((self.half-salida[0]))/self.half
-    cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,tcolor,3)
-    cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-    cv2.circle(img,tuple(salida),3,(0,255,0),-1)
-    #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
-    if np.any(mar):
-        p1,p2,salida = a.direccion_flecha(mar)
-        cv2.arrowedLine(img,p1,p2,(255,255,255),3)
+          if self.cnt_una == 0: # hemos perdido la flecha pero seguimos viendo el cruce
+             salida_final = self.salida_mantener
+          else:
+	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada)
+      if salida_final != None:
+          self.salida = salida_final
+      lineDistance = ((self.half-self.salida[0]))/self.half
+      cv2.putText(img,str(lineDistance),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,2,tcolor,3)
+      cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
+      #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
+      if np.any(mar):
+          p1,p2,salida = a.direccion_flecha(mar)
+          cv2.arrowedLine(img,p1,p2,(255,255,255),3)
 
     #cv2.imshow("segmentacion",paleta[lin])
     #cv2.imshow("video",img)
-    video.write(img)
+    self.video.write(img)
     cv2.waitKey(1)
     return hasLine,lineDistance,icon
 
@@ -331,6 +344,7 @@ class BrainTestNavigator(Brain):
     hasLine,lineDistance,icon = self.step_capture()
     #print "I got from the simulation",hasLine,lineDistance,icon
     #print self.estado
+    print("Distance: {}".format(lineDistance))
     self.estados[self.LINEA]()
     self.move(self.velocidad,self.rotacion)
  
