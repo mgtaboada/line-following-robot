@@ -224,7 +224,7 @@ def direccion_flecha(bi):
 
     return p1,p2,salida
 
-def entrada_salida (img,anterior_entrada=None):
+def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     linea = (img == 2).astype (np.uint8)
     flecha = (img == 0).astype (np.uint8)
     h,w = linea.shape
@@ -250,9 +250,21 @@ def entrada_salida (img,anterior_entrada=None):
         return (0,0),(0,0)
     bi = encontrar_icono(flecha)
     if not np.any (bi==1):
-        # La salida tiene que estar separada de la entrada
-        lejano = np.argmax (distancias)
-        salida = bordes [lejano]
+    
+        salida = (0,0)#Valor por defecto
+
+        if salida_anterior is None:
+            # La salida tiene que estar separada de la entrada
+            lejano = np.argmax (distancias)
+            #salida = bordes [lejano]
+            salida_anterior = bordes [lejano]
+
+        #La salida deberia estar cerca de la anterior salida
+        distancias_salida = np.sum((bordes - salida_anterior)**2, axis=1)
+        if np.size (distancias_salida) > 0:
+            cercano = np.argmin (distancias_salida)
+            salida = bordes [cercano]
+
     else: # debería haber una flecha
          _,_,salida_flecha = direccion_flecha (bi)
          
@@ -265,6 +277,9 @@ def entrada_salida (img,anterior_entrada=None):
              #salida = np.mean(bordes,axis=0)
              salida = bordes [cercano]
          else:
+             ###################################################
+             #Mirar cuando entra aqui, creo que es peligroso este.
+             #Es posible este? En algun momento estamos sin bordes.
              salida = salida_flecha
 
     return (entrada [1],entrada [0]),(salida [1],salida [0])

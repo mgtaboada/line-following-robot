@@ -238,13 +238,13 @@ class BrainTestNavigator(Brain):
            # lleva suficiente tiempo sin ver una flecha como para
            # volver a seguir la linea
            tcolor = (0,255,0) # color verde
-           self.entrada,salida_final= a.entrada_salida(cats,self.entrada)
+           self.entrada,salida_final= a.entrada_salida(cats,self.entrada, self.salida)
       else: # dos lineas
 
         if np.any(mar):
           # veo una flecha -> la sigo y apunto para donde apunta
           tcolor = (255,0,255) # color morado
-          self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada)
+          self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada,self.salida)
           self.salidas_flecha.append(nueva_salida_flecha)
           salida_final = nueva_salida_flecha
         else:
@@ -254,11 +254,14 @@ class BrainTestNavigator(Brain):
         if self.salidas_flecha != []: # ya hemos visto la flecha
           self.cnt_una = 0
           self.salida_mantener =tuple(np.median(np.array(self.salidas_flecha),axis=0).astype(int))
+          #########################################################################################
+          #salida_final por esta rama no adquiere valor?
+          salida_final = self.salida_mantener
         else:
           if self.cnt_una == 0: # hemos perdido la flecha pero seguimos viendo el cruce
              salida_final = self.salida_mantener
           else:
-	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada)
+	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada,self.salida)
       if salida_final != None:
           self.salida = salida_final
       lineDistance = ((self.half-self.salida[0]))/self.half
@@ -269,6 +272,8 @@ class BrainTestNavigator(Brain):
       if np.any(mar):
           p1,p2,salida = a.direccion_flecha(mar)
           cv2.arrowedLine(img,p1,p2,(255,255,255),3)
+          ########################################################################################
+          #Pintar la salida de la flecha.
 
     #cv2.imshow("segmentacion",paleta[lin])
     #cv2.imshow("video",img)
