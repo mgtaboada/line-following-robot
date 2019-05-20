@@ -241,22 +241,16 @@ class BrainTestNavigator(Brain):
            # volver a seguir la linea
            tcolor = (0,255,0) # color verde
            self.entrada,salida_final= a.entrada_salida(cats,self.entrada, self.salida)
-<<<<<<< HEAD
            
 	   print("Salida obtenida ",salida_final)
-=======
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
       else: # dos lineas
 
         if np.any(mar):
           # veo una flecha -> la sigo y apunto para donde apunta
           tcolor = (255,0,255) # color morado
           self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada,self.salida)
-<<<<<<< HEAD
 	  print("Salida para la flecha ",nueva_salida_flecha)
 	
-=======
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
           self.salidas_flecha.append(nueva_salida_flecha)
           salida_final = nueva_salida_flecha
           
@@ -271,20 +265,13 @@ class BrainTestNavigator(Brain):
           self.salida_mantener =tuple(np.median(np.array(self.salidas_flecha),axis=0).astype(int))
           #########################################################################################
           #salida_final por esta rama no adquiere valor?
-<<<<<<< HEAD
           #salida_final = self.salida_mantener
-=======
-          salida_final = self.salida_mantener
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
         else:
           if self.cnt_una == 0: # hemos perdido la flecha pero seguimos viendo el cruce
              tcolor = (125,0,125) # color morado oscuro
              salida_final = self.salida_mantener
           else:
-<<<<<<< HEAD
              tcolor = (125,125,125)#Gris
-=======
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
 	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada,self.salida)
       if salida_final != None:
           self.salida = salida_final
@@ -296,13 +283,9 @@ class BrainTestNavigator(Brain):
       #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
       if np.any(mar):
           p1,p2,salida = a.direccion_flecha(mar)
-<<<<<<< HEAD
           cv2.arrowedLine(img[h:,:],p1,p2,(255,255,255),3)
           cv2.circle(img[h:,:],tuple(salida),3,(0,0,0),-1)
           cv2.putText(img,str(salida),(0,img.shape[0]-80),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),1)
-=======
-          cv2.arrowedLine(img,p1,p2,(255,255,255),3)
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
           ########################################################################################
           #Pintar la salida de la flecha.
 

@@ -273,7 +273,6 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     bi = encontrar_icono(flecha)
     if not np.any (bi==1):
     
-<<<<<<< HEAD
         salida = salida 
         #if salida_anterior is None:
         #    # La salida tiene que estar separada de la entrada
@@ -289,21 +288,6 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
         #if np.size (distancias_salida) > 0:
         #    cercano = np.argmin (distancias_salida)
         #    salida = bordes [cercano]
-=======
-        salida = (0,0)#Valor por defecto
-
-        if salida_anterior is None:
-            # La salida tiene que estar separada de la entrada
-            lejano = np.argmax (distancias)
-            #salida = bordes [lejano]
-            salida_anterior = bordes [lejano]
-
-        #La salida deberia estar cerca de la anterior salida
-        distancias_salida = np.sum((bordes - salida_anterior)**2, axis=1)
-        if np.size (distancias_salida) > 0:
-            cercano = np.argmin (distancias_salida)
-            salida = bordes [cercano]
->>>>>>> 44b4230e5661615b2bceeef60d7bec2549300df4
 
     else: # debería haber una flecha
          _,_,salida_flecha = direccion_flecha (bi)
