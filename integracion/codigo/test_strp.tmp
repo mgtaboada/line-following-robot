@@ -1,0 +1,8 @@
+# print("esto no debería borrarse")
+      print("esto debería borrarse")
+esto 
+  y esto 
+    y esto  
+
+      debería quedarse igual
+    #   print("Esto tampoco debería borrarse
