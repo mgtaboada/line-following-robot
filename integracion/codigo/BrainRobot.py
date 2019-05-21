@@ -192,7 +192,7 @@ class BrainTestNavigator(Brain):
     print('v:{} r: {}'.format(self.velocidad,self.rotacion))
 
   def step_capture(self):
-    hasLine,lineDistance,icon = None,None,None
+    hasLine,lineDistance,icon,turn = None,None,None,None
     self.entrada = None
     if self.capture.isOpened():
       ret,img = self.capture.read()
@@ -201,6 +201,7 @@ class BrainTestNavigator(Brain):
       h = int(img.shape[0]*0)
       cats = self.cl.classif_img(img[h:,:])
       lin = (cats ==2).astype (np.uint8)
+      estado=0
       mar = a.encontrar_icono((cats == 0).astype(np.uint8))
       paleta = np.array([[0,0,255],[0,0,0],[255,0,0],[0,0,0]],dtype=np.uint8)
       tcolor = (255,255,255)
@@ -216,7 +217,7 @@ class BrainTestNavigator(Brain):
       elif (tipo < a.DOS_SALIDAS): # una linea
         self.cnt_una +=1 # incremento contador
         self.salidas_flecha = [] # vacío lista de la ultima flecha
-        if self.cnt_una < thresh_turn:
+        if False:#self.cnt_una < thresh_turn:
           # si llevo poco rato viendo una sola linea
           # mantengo la direccion de la ultima flecha
           tcolor = (255,0,0) # color azul
@@ -240,7 +241,7 @@ class BrainTestNavigator(Brain):
            # lleva suficiente tiempo sin ver una flecha como para
            # volver a seguir la linea
            tcolor = (0,255,0) # color verde
-           self.entrada,salida_final= a.entrada_salida(cats,self.entrada, self.salida)
+           self.entrada,salida_final,estado= a.entrada_salida(cats,self.entrada, self.salida)
            
 	   print("Salida obtenida ",salida_final)
       else: # dos lineas
@@ -248,7 +249,7 @@ class BrainTestNavigator(Brain):
         if np.any(mar):
           # veo una flecha -> la sigo y apunto para donde apunta
           tcolor = (255,0,255) # color morado
-          self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada,self.salida)
+          self.entrada,nueva_salida_flecha,estado=a.entrada_salida(cats,self.entrada,self.salida)
 	  print("Salida para la flecha ",nueva_salida_flecha)
 	
           self.salidas_flecha.append(nueva_salida_flecha)
@@ -272,7 +273,7 @@ class BrainTestNavigator(Brain):
              salida_final = self.salida_mantener
           else:
              tcolor = (125,125,125)#Gris
-	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada,self.salida)
+	     self.entrada, salida_final,estado = a.entrada_salida(cats,self.entrada,self.salida)
       if salida_final != None:
           self.salida = salida_final
       print("Salida final final final: {}".format(self.salida))
@@ -293,7 +294,7 @@ class BrainTestNavigator(Brain):
     #cv2.imshow("video",img)
     self.video.write(img)
     cv2.waitKey(1)
-    return hasLine,lineDistance,icon
+    return hasLine,lineDistance,icon,estado
 
   def step_spiral(self):
     print "SPIRAL"
@@ -360,11 +361,15 @@ class BrainTestNavigator(Brain):
     global hasLine
     global lineDistance
     self.distancias_ultrasonidos()
-    hasLine,lineDistance,icon = self.step_capture()
+    hasLine,lineDistance,icon,estado = self.step_capture()
     #print "I got from the simulation",hasLine,lineDistance,icon
     #print self.estado
     print("Distance: {}".format(lineDistance))
-    self.estados[self.LINEA]()
+    if estado != 0:
+        self.velocidad = 0
+        self.rotacion = estado
+    else:
+       self.estados[self.LINEA]()
     self.move(self.velocidad,self.rotacion)
  
 def INIT(engine):

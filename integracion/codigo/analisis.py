@@ -28,9 +28,12 @@ def chull_area(chull):
 def carea(x,y):
     return 0.5*np.abs(np.dot(x,np.roll(y,1))-np.dot(y,np.roll(x,1)))
 
-def en_borde(cont,shape):
+def en_borde(cont,shape,solo_superior=False):
     x,y = shape
-    return np.any(cont[:,0,:] == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
+    if not solo_superior:
+        return np.any(cont[:,0,:] == 0) or np.any(cont[:,0,0] == y-1) or np.any(cont[:,0,1] == x-1)
+    else:
+        return np.any(cont[:,0,1] == 0) or np.any(cont[:,00,1]==x-1)
 
 def limpiar_img(img):
     """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
@@ -63,7 +66,7 @@ def encontrar_icono(img):
     res = np.zeros(img.shape)
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
-    area = 10 
+    area = 600 
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -72,6 +75,27 @@ def encontrar_icono(img):
 
     #res[biggest] = 1
     if biggest is not None and not en_borde(biggest,img.shape):
+            cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
+    return res.astype(np.uint8)
+
+def posible_icono(img):
+    """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
+
+   img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
+    devuelve otra imagen binaria en la que solo aparece el contorno más grande
+    """
+    res = np.zeros(img.shape)
+    _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+    biggest = None
+    area = 600 
+    for cont in conts:
+        new_area = cv2.contourArea(cont)
+        if new_area > area:
+            biggest = cont
+            area = new_area
+
+    #res[biggest] = 1
+    if biggest is not None and not en_borde(biggest,img.shape,solo_superior=True):
             cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
 
@@ -228,7 +252,7 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     linea = (img == 2).astype (np.uint8)
     flecha = (img == 0).astype (np.uint8)
     h,w = linea.shape
-
+    estado = 0
     print("Salida anterior ",salida_anterior)
     tipo =tipo_linea (linea)
 
@@ -268,12 +292,20 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     # buscar la salida
 
     if tipo is None:
-        return (entrada [1],entrada [0]),(salida [1],salida [0])
+        return (entrada [1],entrada [0]),(salida [1],salida [0]), estado
         #return (0,0),(0,0)
     bi = encontrar_icono(flecha)
     if not np.any (bi==1):
-    
-        salida = salida 
+        posible=posible_icono(flecha)
+        if np.any(posible):
+            _,conts,hier = cv2.findContours(posible*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
+            arrow =conts[0]
+            _,_,x,_ = cv2.fitLine(arrow,cv2.DIST_L2,0,0.01,0.01)
+            if x < flecha.shape[0]/2:
+                estado = -1
+            else:
+                estado = 1
+    #      salida = salida 
         #if salida_anterior is None:
         #    # La salida tiene que estar separada de la entrada
         #    distancias = np.sum((bordes - entrada)**2, axis=1)
@@ -308,4 +340,4 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
              salida = salida_flecha
              salida = (salida[1],salida[0])
 
-    return (entrada [1],entrada [0]),(salida [1],salida [0])
+    return (entrada [1],entrada [0]),(salida [1],salida [0]),estado
