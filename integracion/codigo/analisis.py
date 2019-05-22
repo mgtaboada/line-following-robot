@@ -9,6 +9,11 @@ CURVA_IZQUIERDA = 2
 DOS_SALIDAS = 3
 TRES_SALIDAS= 4
 
+NADA = 0
+DERECHA = -1
+IZQUIERDA = 1
+FLECHA = 2
+
 
 def in_border (img):
     #np.savetxt ("img.txt",img)
@@ -66,7 +71,7 @@ def encontrar_icono(img):
     res = np.zeros(img.shape)
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
-    area = 600 
+    area = 800 
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -87,7 +92,7 @@ def posible_icono(img):
     res = np.zeros(img.shape)
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
-    area = 600 
+    area = 300 
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -252,7 +257,7 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     linea = (img == 2).astype (np.uint8)
     flecha = (img == 0).astype (np.uint8)
     h,w = linea.shape
-    estado = 0
+    estado = NADA
     print("Salida anterior ",salida_anterior)
     tipo =tipo_linea (linea)
 
@@ -302,9 +307,9 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
             arrow =conts[0]
             _,_,x,_ = cv2.fitLine(arrow,cv2.DIST_L2,0,0.01,0.01)
             if x < flecha.shape[0]/2:
-                estado = -1
+                estado = IZQUIERDA
             else:
-                estado = 1
+                estado = DERECHA
     #      salida = salida 
         #if salida_anterior is None:
         #    # La salida tiene que estar separada de la entrada
@@ -322,6 +327,8 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
         #    salida = bordes [cercano]
 
     else: # debería haber una flecha
+
+         estado = FLECHA
          _,_,salida_flecha = direccion_flecha (bi)
          salida_flecha = (salida_flecha[1],salida_flecha[0])
          

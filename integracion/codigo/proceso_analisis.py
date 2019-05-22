@@ -9,7 +9,7 @@ import analisis as a
 texto = "Linea recta,Curva derecha,Curva izquierda,Bifurcacion o T,Cruce en X".split (",")
 cl = c.Clasificador()
 # Inicio la captura de imagenes
-capture = cv2.VideoCapture("../recorrido.mp4")
+capture = cv2.VideoCapture("../videos/line0.mp4")
 
 _,img = capture.read()
 # Ahora clasifico el video
@@ -39,8 +39,7 @@ while (capture.isOpened()):
     tipo,img [h:,:] = a.tipo_linea (cats,img [h:,:])
     if tipo is not None:
         cv2.putText (img [h:,: ],texto [tipo],(0,img [h:,:].shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,0),1)
-    
-    #video.write (img)
+    video.write (img)
 
 cv2.destroyAllWindows ()
 video.release ()

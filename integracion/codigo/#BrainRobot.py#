@@ -24,12 +24,6 @@ class BrainTestNavigator(Brain):
   SEGUIR_OBJETO = 4
   GIRAR_ESQUINA = 5
 
-  #Subestados
-  DERECHA   = -1
-  IZQUIERDA = 1
-  NADA      = 0
-  ICONO     = 2
-
   NO_FORWARD = 0
   SLOW_FORWARD = 0.1
   MED_FORWARD = 0.5
@@ -90,17 +84,17 @@ class BrainTestNavigator(Brain):
     self.video = cv2.VideoWriter("resultado.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.segmentacion = cv2.VideoWriter("segmentacion.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.half =  float(img.shape[1]/2)
-    self.tamanyo_x = int(img.shape[1])
 
     
   def setup_recog(self):
-     with open("datasetFiguras", 'rb') as f:
-       dataset = pickle.load(f)
-     with open("datasetEtiquetasFiguras", 'rb') as f:
-       dataset_etiquetas = pickle.load(f)
-     self.skmaha = n.KNeighborsClassifier(1,algorithm='brute',metric='mahalanobis',metric_params={'V':np.cov(dataset)})
+    pass
+    # with open("datasetFiguras", 'rb') as f:
+    #   dataset = pickle.load(f)
+    # with open("datasetEtiquetasFiguras", 'rb') as f:
+    #   dataset_etiquetas = pickle.load(f)
+    # self.skmaha = n.KNeighborsClassifier(1,algorithm='brute',metric='mahalanobis',metric_params={'V':np.cov(dataset)})
 
-     self.skmaha.fit(dataset,dataset_etiquetas)
+    # self.skmaha.fit(dataset,dataset_etiquetas)
 
   def setup(self):
     self.robot.range.units = "ROBOTS"
@@ -111,10 +105,7 @@ class BrainTestNavigator(Brain):
     self.setup_avoid()
     self.setup_capture()
     self.setup_recog()
-    self.buscando_icono = self.NADA
-
-    self.fin = False
-    self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa, 
+    self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa,
             self.SEGUIR_OBJETO:self.seguir_objeto, self.GIRAR_ESQUINA:self.girar_esquina}
   def _n_cycles(self):
         '''Devuelve el numero de ciclos necesarios para dar media vuelta con la configuracion actual'''
@@ -175,7 +166,6 @@ class BrainTestNavigator(Brain):
       self.rotacion = self.pid_rotacion.compute(lineDistance)
 
       self.velocidad = max([0,1- abs(self.pid_velocidad.compute(self.rotacion))])
-      self.velocidad*=0.6
       self.total_error += abs(lineDistance)
 
     else:
@@ -201,35 +191,8 @@ class BrainTestNavigator(Brain):
       
     print('v:{} r: {}'.format(self.velocidad,self.rotacion))
 
-
-  def medio_icono(self,img):
-    icono = (img == 0).astype (np.uint8)
-    bi = a.encontrar_icono(icono)
-    cadena = ""
-    if not np.any (bi==1):
-        posible=a.posible_icono(icono)
-        if np.any(posible):
-            cadena += "Medio icono"
-            _,conts,hier = cv2.findContours(posible*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
-            cosa =conts[0]
-            _,_,x,_ = cv2.fitLine(cosa,cv2.DIST_L2,0,0.01,0.01)
-            if x < icono.shape[0]/2:
-                estado = self.IZQUIERDA
-            else:
-                estado = self.DERECHA
-        else:
-            cadena += "Nada"
-            estado = self.NADA
-    else:
-        cadena += "Un icono completo"
-	estado = self.ICONO
-    return estado, cadena
-	
-
-  
-
   def step_capture(self):
-    hasLine,lineDistance,icon,turn = None,None,None,None
+    hasLine,lineDistance,icon = None,None,None
     self.entrada = None
     if self.capture.isOpened():
       ret,img = self.capture.read()
@@ -238,15 +201,10 @@ class BrainTestNavigator(Brain):
       h = int(img.shape[0]*0)
       cats = self.cl.classif_img(img[h:,:])
       lin = (cats ==2).astype (np.uint8)
-      estado=self.NADA
       mar = a.encontrar_icono((cats == 0).astype(np.uint8))
       paleta = np.array([[0,0,255],[0,0,0],[255,0,0],[0,0,0]],dtype=np.uint8)
       tcolor = (255,255,255)
       salida_final = self.salida
-
-      estado,c = self.medio_icono(cats)
-      cv2.putText(img,c,(0,img.shape[0]-100),cv2.FONT_HERSHEY_SIMPLEX,1,(0,0,0),1)
-
       #Detecto tipo del inea
       tipo = a.tipo_linea(lin)
       if tipo != None: 
@@ -254,11 +212,11 @@ class BrainTestNavigator(Brain):
       if tipo == None:
         hasLine = False
 	lineDistance = 0
-	return hasLine, lineDistance, None, estado
+	return hasLine, lineDistance, None
       elif (tipo < a.DOS_SALIDAS): # una linea
         self.cnt_una +=1 # incremento contador
         self.salidas_flecha = [] # vacío lista de la ultima flecha
-        if False:#self.cnt_una < thresh_turn:
+        if self.cnt_una < thresh_turn:
           # si llevo poco rato viendo una sola linea
           # mantengo la direccion de la ultima flecha
           tcolor = (255,0,0) # color azul
@@ -268,66 +226,62 @@ class BrainTestNavigator(Brain):
               # si hay marca es un icono
               
               sym = mar
-
-              paleta2 = np.array([[0,0,0],[255,255,255],[0,0,255],[0,0,0]],dtype=np.uint8)
-              grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta2[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
+              grayscale_img = cv2.cvtColor(cv2.cvtColor(paleta[sym],cv2.COLOR_RGB2BGR),cv2.COLOR_BGR2GRAY)
               _, binary_img = cv2.threshold(grayscale_img, 20, 255, cv2.THRESH_BINARY)
               _,conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
               #conts,hier = cv2.findContours(binary_img,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
               if len(conts) > 0:
                 moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
-                icon = self.skmaha.predict([moments])[0]
-                
-                cv2.putText(img,str(icon),(0,img.shape[0]-140),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-                
-                if icon =="cruz":
-                  pass 
+                #icon = self.skmaha.predict([moments])[0]
+                icon = None
               # como los pixeles segmentados como flecha de cats son de una marca, los elimino
               cats[cats==0]=1
     
            # lleva suficiente tiempo sin ver una flecha como para
            # volver a seguir la linea
            tcolor = (0,255,0) # color verde
-           self.entrada,salida_final,_= a.entrada_salida(cats,self.entrada, self.salida)
-           
+           self.entrada,salida_final= a.entrada_salida(cats,self.entrada, self.salida)
+
 	   print("Salida obtenida ",salida_final)
       else: # dos lineas
-        #if np.any(mar):
-        #  # veo una flecha -> la sigo y apunto para donde apunta
-        #  tcolor = (255,0,255) # color morado
-        #  self.entrada,nueva_salida_flecha,_=a.entrada_salida(cats,self.entrada,self.salida)
-	#  print("Salida para la flecha ",nueva_salida_flecha)
-	#
-        #  self.salidas_flecha.append(nueva_salida_flecha)
-        #  salida_final = nueva_salida_flecha
-        #  
-        #  cv2.putText(img,str(salida_final),(0,img.shape[0]-60),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-        #else:
-        #  # no hay flecha -> vacío la lista
-        #  self.salidas_flecha = []
 
-        #if self.salidas_flecha != []: # ya hemos visto la flecha
-        #  tcolor = (0,0,0) # color negro
-        #  self.cnt_una = 0
-	#  self.entrada, salida_final,_ = a.entrada_salida(cats,self.entrada,self.salida)
-        #  self.salida_mantener =tuple(np.median(np.array(self.salidas_flecha),axis=0).astype(int))
-        #  #########################################################################################
-        #  #salida_final por esta rama no adquiere valor?
-        #  #salida_final = self.salida_mantener
-        #else:
-        #  if self.cnt_una == 0: # hemos perdido la flecha pero seguimos viendo el cruce
-        #     tcolor = (125,0,125) # color morado oscuro
-        #     salida_final = self.salida_mantener
-        #  else:
-        #     tcolor = (125,125,125)#Gris
-	self.entrada, salida_final,_ = a.entrada_salida(cats,self.entrada,self.salida)
+        if np.any(mar):
+          # veo una flecha -> la sigo y apunto para donde apunta
+          tcolor = (255,0,255) # color morado
+          self.entrada,nueva_salida_flecha=a.entrada_salida(cats,self.entrada,self.salida)
+	  print("Salida para la flecha ",nueva_salida_flecha)
+	
+          self.salidas_flecha.append(nueva_salida_flecha)
+          salida_final = nueva_salida_flecha
+          
+          cv2.putText(img,str(salida_final),(0,img.shape[0]-60),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+        else:
+          # no hay flecha -> vacío la lista
+          self.salidas_flecha = []
+
+        if self.salidas_flecha != []: # ya hemos visto la flecha
+          tcolor = (0,0,0) # color negro
+          self.cnt_una = 0
+          self.salida_mantener =tuple(np.median(np.array(self.salidas_flecha),axis=0).astype(int))
+          #########################################################################################
+          #salida_final por esta rama no adquiere valor?
+
+          #salida_final = self.salida_mantener
+          salida_final = self.salida_mantener
+
+        else:
+          if self.cnt_una == 0: # hemos perdido la flecha pero seguimos viendo el cruce
+             tcolor = (125,0,125) # color morado oscuro
+             salida_final = self.salida_mantener
+          else:
+             tcolor = (125,125,125)#Gris
+	     self.entrada, salida_final = a.entrada_salida(cats,self.entrada,self.salida)
       if salida_final != None:
           self.salida = salida_final
       print("Salida final final final: {}".format(self.salida))
       lineDistance = ((self.half-self.salida[0]))/self.half
       cv2.putText(img,str(self.salida),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-      cv2.putText(img,"{}({})".format("",self.velocidad),(0,120),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
       #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
       if np.any(mar):
@@ -335,6 +289,7 @@ class BrainTestNavigator(Brain):
           cv2.arrowedLine(img[h:,:],p1,p2,(255,255,255),3)
           cv2.circle(img[h:,:],tuple(salida),3,(0,0,0),-1)
           cv2.putText(img,str(salida),(0,img.shape[0]-80),cv2.FONT_HERSHEY_SIMPLEX,1,(255,255,255),1)
+
           ########################################################################################
           #Pintar la salida de la flecha.
 
@@ -342,7 +297,7 @@ class BrainTestNavigator(Brain):
     #cv2.imshow("video",img)
     self.video.write(img)
     cv2.waitKey(1)
-    return hasLine,lineDistance,icon,estado
+    return hasLine,lineDistance,icon
 
   def step_spiral(self):
     print "SPIRAL"
@@ -409,34 +364,13 @@ class BrainTestNavigator(Brain):
     global hasLine
     global lineDistance
     self.distancias_ultrasonidos()
-    hasLine,lineDistance,icon,estado = self.step_capture()
+    hasLine,lineDistance,icon = self.step_capture()
     #print "I got from the simulation",hasLine,lineDistance,icon
     #print self.estado
     print("Distance: {}".format(lineDistance))
-    if self.fin:
-        return
     self.estados[self.LINEA]()
-    if self.buscando_icono != self.ICONO and (estado != self.NADA and estado != self.ICONO):
-        self.velocidad = 0
-        self.rotacion = estado
-        self.buscando_icono = estado
-    else:
-       #Si antes veiamos un icono y ahora no es que se ha perdido el icono
-       if estado is self.NADA and self.buscando_icono is self.ICONO:
-           self.buscando_icono = self.NADA
-       #Si encuentra un icono entramos en que hemos visto un icono
-
-       
-       if self.salida[0] < 2 or self.salida[0] > (self.tamanyo_x-4):
-           self.velocidad = 0
-       if estado is self.ICONO and self.buscando_icono != self.ICONO:
-           self.velocidad = -1
-	   self.rotacion = 0
-           self.buscando_icono = self.ICONO
-
-
     self.move(self.velocidad,self.rotacion)
-
+ 
 def INIT(engine):
   assert (engine.robot.requires("range-sensor") and
 	  engine.robot.requires("continuous-movement"))
