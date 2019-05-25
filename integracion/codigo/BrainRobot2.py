@@ -105,16 +105,13 @@ class BrainTestNavigator(Brain):
   def setup(self):
     self.robot.range.units = "ROBOTS"
     self.ticks_en_linea = 0
-    #self.estado = self.SPIRAL
-    self.estado = self.LINEA #Se supone que hay linea nada mas empezar
+    self.estado = self.SPIRAL
     self.setup_line()
     self.setup_spiral()
     self.setup_avoid()
     self.setup_capture()
     self.setup_recog()
     self.buscando_icono = self.NADA
-    self.perdida_objeto = False
-    self.linea_obj = 0
 
     self.fin = False
     self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa, 
@@ -160,7 +157,7 @@ class BrainTestNavigator(Brain):
     global lineDistance
 
     #Si encuentra un objeto se para y pasa a seguirlo
-    if self.front <= 0.1:
+    if self.front <= 1:
         self.velocidad = 0
         self.rotacion = 0
         self.estado = self.SEGUIR_OBJETO
@@ -181,25 +178,25 @@ class BrainTestNavigator(Brain):
       self.velocidad*=0.6
       self.total_error += abs(lineDistance)
 
-    #else:
-    #  print("NO LINEA")
-    #  if self.ticks_en_linea >= 5:
-    #    self.estado = self.NOVENTA
-    #    self.orientacion_0 = self.robot.th
-    #    ##self.step_noventa()
-    #  #else:
-    #  #  self.ticks_en_linea = 0
-    #  #  self.estado = self.SPIRAL
-    #    #self.setup_spiral()
-    #    ##self.step_spiral()
-    #  # if self.linepos == -1: # la linea esta a la izquierda
-    #  #   self.rotacion =- 0.5 # girar a la derecha
-    #  # elif self.linepos == 1:
-    #  #   self.rotacion = 0.5 # girar a la izquierda
-    #  # else:
-    #  #   self.rotacion = 0
+    else:
+      print("NO LINEA")
+      if self.ticks_en_linea >= 5:
+        self.estado = self.NOVENTA
+        self.orientacion_0 = self.robot.th
+        ##self.step_noventa()
+      else:
+        self.ticks_en_linea = 0
+        self.estado = self.SPIRAL
+        #self.setup_spiral()
+        ##self.step_spiral()
+      # if self.linepos == -1: # la linea esta a la izquierda
+      #   self.rotacion =- 0.5 # girar a la derecha
+      # elif self.linepos == 1:
+      #   self.rotacion = 0.5 # girar a la izquierda
+      # else:
+      #   self.rotacion = 0
 
-    #  # self.velocidad = 0.1# self.NO_FORWARD  # moverse despacito
+      # self.velocidad = 0.1# self.NO_FORWARD  # moverse despacito
 
       
     print('v:{} r: {}'.format(self.velocidad,self.rotacion))
@@ -255,18 +252,11 @@ class BrainTestNavigator(Brain):
       tipo = a.tipo_linea(lin)
       hasLine = True
 
-      cv2.putText(img,"Estado actual: " + str(self.estado),(0,img.shape[0]-40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-      #####################################3
-      #tipo = None 
-
       if tipo == None:
         hasLine = False
         #lineDistance = 0
         #No hay linea la ha perdido, va al ultimo punto que recuerda
-        #self.salida = (self.half,0)
         lineDistance = ((self.half-self.salida[0]))/self.half
-        self.video.write(img)
-        cv2.waitKey(1)
 	return hasLine, lineDistance, None, estado
 
       if np.any(mar):
@@ -281,9 +271,9 @@ class BrainTestNavigator(Brain):
          if len(conts) > 0:
            moments = cv2.HuMoments(cv2.moments(binary_img)).flatten()
            icon = self.skmaha.predict([moments])[0]
-           cv2.putText(img,"Icono actual: " + str(icon),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      cv2.putText(img,"Icono actual: " + str(icon),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
 
-      if (tipo < a.DOS_SALIDAS) and icon != "flecha" and icon != "Ninguno":
+      if (tipo < a.DOS_SALIDAS) or (icon != "flecha" and icon != "Ninguno"):
 
         if icon =="cruz":
             self.fin = True 
@@ -298,7 +288,7 @@ class BrainTestNavigator(Brain):
       #if salida_final != None:
       self.salida = salida_final
 
-      print("Salida final final final: {}".format(self.salida))
+      #print("Salida final final final: {}".format(self.salida))
       lineDistance = ((self.half-self.salida[0]))/self.half
       #cv2.putText(img,str(self.salida),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
@@ -359,34 +349,23 @@ class BrainTestNavigator(Brain):
   def seguir_objeto(self):
       #Sigue un objeto
       global hasLine
-
-      if not hasLine and not self.perdida_objeto:
-          self.linea_obj = 0
-          self.perdida_objeto = True
-      if not hasLine and self.linea_obj != 0:
-          self.linea_obj = 0
-
       self.velocidad = 0.5
       self.rotacion  = 0
       #Si esta cerca de la pared se aleja
-      if self.left < 0.2:
+      if self.left < 0.5:
           self.velocidad = 0.2
-          self.rotacion  = -.8
-      elif self.left > 0.4:
+          self.rotacion  = -.3
+      elif self.left > 0.8:
           #Si esta lejos se acerca
           self.velocidad = 0.2
-          self.rotacion  = .8
+          self.rotacion  = .3
       if self.front <= 1:
           #Si hay un objeto delante gira
           self.velocidad = 0
           self.rotacion  = 0
           self.estado = self.GIRAR_ESQUINA
-      if hasLine and self.perdida_objeto:
-          self.linea_obj += 1
-      if self.front > 2 and hasLine and self.perdida_objeto and self.linea_obj > 5:
+      if self.front > 2 and hasLine:
           #Si no hay nada y hay linea sigue la linea
-          self.perdida_objeto = False
-          self.linea_obj = 0
           self.estado = self.LINEA
 
 
@@ -401,25 +380,24 @@ class BrainTestNavigator(Brain):
     print("Distance: {}".format(lineDistance))
     if self.fin:
         return
-    self.estados[self.estado]()
-    if self.estado is self.LINEA:
-    	if self.buscando_icono != self.ICONO and (estado != self.NADA and estado != self.ICONO):
-    	    self.velocidad = 0
-    	    self.rotacion = estado
-    	    self.buscando_icono = estado
-    	else:
-    	   #Si antes veiamos un icono y ahora no es que se ha perdido el icono
-    	   if estado is self.NADA and self.buscando_icono is self.ICONO:
-    	       self.buscando_icono = self.NADA
-    	   #Si encuentra un icono entramos en que hemos visto un icono
+    self.estados[self.LINEA]()
+    if self.buscando_icono != self.ICONO and (estado != self.NADA and estado != self.ICONO):
+        self.velocidad = 0
+        self.rotacion = estado
+        self.buscando_icono = estado
+    else:
+       #Si antes veiamos un icono y ahora no es que se ha perdido el icono
+       if estado is self.NADA and self.buscando_icono is self.ICONO:
+           self.buscando_icono = self.NADA
+       #Si encuentra un icono entramos en que hemos visto un icono
 
-    	   
-    	   if self.salida[0] < 2 or self.salida[0] > (self.tamanyo_x-4):
-    	       self.velocidad = 0
-    	   if estado is self.ICONO and self.buscando_icono != self.ICONO:
-    	       self.velocidad = -1
-    	       self.rotacion = 0
-    	       self.buscando_icono = self.ICONO
+       
+       if self.salida[0] < 2 or self.salida[0] > (self.tamanyo_x-4):
+           self.velocidad = 0
+       if estado is self.ICONO and self.buscando_icono != self.ICONO:
+           self.velocidad = -1
+	   self.rotacion = 0
+           self.buscando_icono = self.ICONO
 
 
     self.move(self.velocidad,self.rotacion)
