@@ -16,8 +16,8 @@ n = -1
 
 entrada=None
 
-videos = ["../videos/persona.mp4","../videos/escalera.mp4","../videos/cruz.mp4","../videos/telefono.mp4"]
-etiquetas = ["persona","escalera","cruz","telefono"]
+videos = ["../videos/persona.mp4","../videos/escalera.mp4","../videos/cruz.mp4","../videos/telefono.mp4", "../videos/flecha1.mp4", "../videos/flecha2.mp4"]
+etiquetas = ["persona","escalera","cruz","telefono","flecha","flecha"]
 
 dataset = []
 dataset_etiquetas = []
