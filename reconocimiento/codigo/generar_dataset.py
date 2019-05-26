@@ -16,8 +16,8 @@ n = -1
 
 entrada=None
 
-videos = ["../videos/persona.mp4","../videos/escalera.mp4","../videos/cruz.mp4","../videos/telefono.mp4"]
-etiquetas = ["persona","escalera","cruz","telefono"]
+videos = ["../videos/persona.mp4","../videos/escalera.mp4","../videos/cruz.mp4","../videos/telefono.mp4", "../videos/flecha1.mp4", "../videos/flecha2.mp4","../videos/flecha3.mp4"]
+etiquetas = ["persona","escalera","cruz","telefono","flecha","flecha","flecha"]
 
 dataset = []
 dataset_etiquetas = []
@@ -27,7 +27,7 @@ for i in range(len(videos)):
     capture = cv2.VideoCapture(videos[i])
     longitud = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
     _,img = capture.read()
-    modulador = longitud//100
+    modulador = longitud//200
     po = 0
     while (capture.isOpened()):
         n+=1
