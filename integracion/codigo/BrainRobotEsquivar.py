@@ -7,7 +7,7 @@ import pid
 import  cv2
 import numpy as np
 import clasificador as c
-import analisis as a
+import analisisEsquivar as a
 import pickle #Cargar los datos
 import sklearn.neighbors as n
 
@@ -90,6 +90,7 @@ class BrainTestNavigator(Brain):
     self.video = cv2.VideoWriter("resultado.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.segmentacion = cv2.VideoWriter("segmentacion.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.half =  float(img.shape[1]/2)
+    self.half_y = float(img.shape[0]/2)
     self.tamanyo_x = int(img.shape[1])
 
     
@@ -115,6 +116,7 @@ class BrainTestNavigator(Brain):
     self.buscando_icono = self.NADA
     self.perdida_objeto = False
     self.linea_obj = 0
+    self.umbral = 900
 
     self.fin = False
     self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa, 
@@ -163,6 +165,7 @@ class BrainTestNavigator(Brain):
     if self.front <= 0.1:
         self.velocidad = 0
         self.rotacion = 0
+        self.umbral = 20
         self.estado = self.SEGUIR_OBJETO
     elif (hasLine):
       self.ticks_en_linea +=1
@@ -260,11 +263,12 @@ class BrainTestNavigator(Brain):
       #tipo = None 
 
       if tipo == None:
-        hasLine = False
+        hasLine = False 
         #lineDistance = 0
         #No hay linea la ha perdido, va al ultimo punto que recuerda
         #self.salida = (self.half,0)
         lineDistance = ((self.half-self.salida[0]))/self.half
+        cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
         self.video.write(img)
         cv2.waitKey(1)
 	return hasLine, lineDistance, None, estado
@@ -296,11 +300,15 @@ class BrainTestNavigator(Brain):
 
       self.entrada, salida_final,_ = a.entrada_salida(cats,self.entrada,self.salida)
       #if salida_final != None:
-      self.salida = salida_final
+      if self.estado == self.SEGUIR_OBJETO:
+          if salida_final[0] > 0 and salida_final[1] > 0:
+              self.salida = salida_final
+      else:
+          self.salida = salida_final 
 
       print("Salida final final final: {}".format(self.salida))
       lineDistance = ((self.half-self.salida[0]))/self.half
-      #cv2.putText(img,str(self.salida),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      cv2.putText(img,str(self.salida),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.velocidad),(0,120),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
@@ -349,7 +357,7 @@ class BrainTestNavigator(Brain):
           self.estado = self.SEGUIR_OBJETO
       else:
           #Si esta muy lejos de la pared se acerca
-          ret = (0, -.2)
+          ret = (0, -.8)
       #else:
       #    ret = (0, -.3)
       self.velocidad = ret[0]
@@ -359,6 +367,8 @@ class BrainTestNavigator(Brain):
   def seguir_objeto(self):
       #Sigue un objeto
       global hasLine
+
+      self.salida = (200,0)
 
       if not hasLine and not self.perdida_objeto:
           self.linea_obj = 0
@@ -380,11 +390,13 @@ class BrainTestNavigator(Brain):
           #Si hay un objeto delante gira
           self.velocidad = 0
           self.rotacion  = 0
+
           self.estado = self.GIRAR_ESQUINA
       if hasLine and self.perdida_objeto:
           self.linea_obj += 1
       if self.front > 2 and hasLine and self.perdida_objeto and self.linea_obj > 5:
           #Si no hay nada y hay linea sigue la linea
+          self.umbral = 900
           self.perdida_objeto = False
           self.linea_obj = 0
           self.estado = self.LINEA

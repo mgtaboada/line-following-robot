@@ -90,6 +90,7 @@ class BrainTestNavigator(Brain):
     self.video = cv2.VideoWriter("resultado.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.segmentacion = cv2.VideoWriter("segmentacion.avi",fourcc,6,(img.shape[1],img.shape[0]))
     self.half =  float(img.shape[1]/2)
+    self.half_y = float(img.shape[0]/2)
     self.tamanyo_x = int(img.shape[1])
 
     
@@ -114,6 +115,7 @@ class BrainTestNavigator(Brain):
     self.buscando_icono = self.NADA
 
     self.fin = False
+    self.n_fin = 0
     self.estados = {self.SPIRAL:self.step_spiral,self.LINEA:self.step_line, self.GIRO: self.step_giro, self.NOVENTA: self.step_noventa, 
             self.SEGUIR_OBJETO:self.seguir_objeto, self.GIRAR_ESQUINA:self.girar_esquina}
   def _n_cycles(self):
@@ -205,14 +207,15 @@ class BrainTestNavigator(Brain):
   def medio_icono(self,img):
     icono = (img == 0).astype (np.uint8)
     bi = a.encontrar_icono(icono)
+    #bi = a.posible_icono(icono)
     cadena = ""
     if not np.any (bi==1):
-        posible=a.posible_icono(icono)
+        posible=a.posible_icono(icono,500)
         if np.any(posible):
             cadena += "Medio icono"
             _,conts,hier = cv2.findContours(posible*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
             cosa =conts[0]
-            _,_,x,_ = cv2.fitLine(cosa,cv2.DIST_L2,0,0.01,0.01)
+            _,_,x,y = cv2.fitLine(cosa,cv2.DIST_L2,0,0.01,0.01)
             if x < icono.shape[0]/2:
                 estado = self.IZQUIERDA
             else:
@@ -273,29 +276,38 @@ class BrainTestNavigator(Brain):
            icon = self.skmaha.predict([moments])[0]
       cv2.putText(img,"Icono actual: " + str(icon),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
 
-      if (tipo < a.DOS_SALIDAS) or (icon != "flecha" and icon != "Ninguno"):
+      if (tipo < a.DOS_SALIDAS) and (icon != "flecha" and icon != "Ninguno"):
 
         if icon =="cruz":
-            self.fin = True 
+            #self.n_fin += 1
+            #if self.n_fin > 10: 
+            self.fin = True
+        #else:
+        #    self.n_fin = 0
         # como los pixeles segmentados como flecha de cats son de una marca, los elimino
         cats[cats==0]=1
     
         # lleva suficiente tiempo sin ver una flecha como para
         # volver a seguir la linea
         tcolor = (0,255,0) # color verde
+      elif icon != "Ninguno":
+          icon = "flecha"
 
       self.entrada, salida_final,_ = a.entrada_salida(cats,self.entrada,self.salida)
+      #if salida_final[1] >= 2:
       #if salida_final != None:
       self.salida = salida_final
 
       #print("Salida final final final: {}".format(self.salida))
       lineDistance = ((self.half-self.salida[0]))/self.half
-      #cv2.putText(img,str(self.salida),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      cv2.putText(img,str(self.salida),(0,img.shape[0]-10),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      #cv2.putText(img,str(salida_final),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.velocidad),(0,120),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
       #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
-      if np.any(mar):
+      if icon == "flecha":
+          #self.n_fin = 0
           p1,p2,salida = a.direccion_flecha(mar)
           cv2.arrowedLine(img[h:,:],p1,p2,(255,255,255),3)
           cv2.circle(img[h:,:],tuple(salida),3,(0,0,0),-1)

@@ -107,13 +107,13 @@ def posible_icono(img):
 
 
 
-def tipo_linea(img):
+def tipo_linea(img, umbral = 900):
     """
     img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
 
     """
     thres = 0.2 # Porcentaje de cierre convexo que no es linea para considerar linea recta
-    #img = limpiar_img(img)
+    img = limpiar_img(img, umbral)
 
     # Contamos los contornos de no linea: Si hay más de dos, hay más de una salida
 
