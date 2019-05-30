@@ -83,7 +83,7 @@ def encontrar_icono(img):
             cv2.drawContours(res, [biggest], 0, (1), thickness=cv2.FILLED)
     return res.astype(np.uint8)
 
-def posible_icono(img):
+def posible_icono(img, area = 800):
     """ Eliminar aquellos pixeles que estaban mal segmentados como linea en la imagen
 
    img: imagen binaria en la que los 1 son pixeles de linea y los 0 de otra cosa
@@ -92,7 +92,7 @@ def posible_icono(img):
     res = np.zeros(img.shape)
     _,conts, hier = cv2.findContours((img== 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
     biggest = None
-    area = 300 
+    #area = 500 
     for cont in conts:
         new_area = cv2.contourArea(cont)
         if new_area > area:
@@ -130,9 +130,9 @@ def tipo_linea(img):
     _, conts, hier = cv2.findContours((img == 1).astype(np.uint8)*255,cv2.RETR_LIST,cv2.CHAIN_APPROX_NONE)
 
     if len (conts) == 0:
-        print("No conts")
+        #print("No conts")
         return None
-    print("Algun cont")
+    #print("Algun cont")
     #suponemos que la linea es el contorno con la mayor area
     line =conts[0]
     area = cv2.contourArea(line)
@@ -258,7 +258,7 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     flecha = (img == 0).astype (np.uint8)
     h,w = linea.shape
     estado = NADA
-    print("Salida anterior ",salida_anterior)
+    #print("Salida anterior ",salida_anterior)
     tipo =tipo_linea (linea)
 
     # Suponemos que está cerca del centro
@@ -281,7 +281,7 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
 	lejano = np.argmax (distancias)
 	#salida = bordes [lejano]
 	salida_anterior = bordes [lejano]
-	print("Salida nula ",salida_anterior)
+	#print("Salida nula ",salida_anterior)
 
      
     #La salida deberia estar cerca de la anterior salida
@@ -289,9 +289,9 @@ def entrada_salida (img,anterior_entrada=None,salida_anterior=None):
     if np.size (distancias_salida) > 0:
      	cercano = np.argmin (distancias_salida)
      	salida = bordes [cercano]
-	print("Salida  lejana",salida)
+	#print("Salida  lejana",salida)
 
-    print("Salida final ",salida)
+    #print("Salida final ",salida)
     #salida = (0,0)
 
     # buscar la salida

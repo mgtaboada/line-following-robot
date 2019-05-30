@@ -123,7 +123,7 @@ class BrainTestNavigator(Brain):
         return int(((3/self.rotacion)**2)/2.0)
 
   def step_noventa(self):
-    print "NOVENTA"
+    #print "NOVENTA"
     global hasLine
     if hasLine:
       self.estado = self.LINEA
@@ -141,7 +141,7 @@ class BrainTestNavigator(Brain):
           self.rotacion = 0.5
     
   def step_giro(self):
-    print "GIRO"
+    #print "GIRO"
     global hasLine
     if hasLine:
       self.estado = self.LINEA
@@ -159,13 +159,13 @@ class BrainTestNavigator(Brain):
     global lineDistance
 
     #Si encuentra un objeto se para y pasa a seguirlo
-    if self.front <= 1:
-        self.velocidad = 0
-        self.rotacion = 0
-        self.estado = self.SEGUIR_OBJETO
-    elif (hasLine):
+    #if self.front <= 1:
+    #    self.velocidad = 0
+    #    self.rotacion = 0
+    #    self.estado = self.SEGUIR_OBJETO
+    if (hasLine):
       self.ticks_en_linea +=1
-      print("LINEA")
+      #print("LINEA")
       with open(self.logfile,'a') as f:
         f.write(str(lineDistance) + "\n")
       if lineDistance> 0: # derecha
@@ -181,7 +181,7 @@ class BrainTestNavigator(Brain):
       self.total_error += abs(lineDistance)
 
     else:
-      print("NO LINEA")
+      #print("NO LINEA")
       if self.ticks_en_linea >= 5:
         self.estado = self.NOVENTA
         self.orientacion_0 = self.robot.th
@@ -201,7 +201,7 @@ class BrainTestNavigator(Brain):
       # self.velocidad = 0.1# self.NO_FORWARD  # moverse despacito
 
       
-    print('v:{} r: {}'.format(self.velocidad,self.rotacion))
+    #print('v:{} r: {}'.format(self.velocidad,self.rotacion))
 
 
   def medio_icono(self,img):
@@ -277,6 +277,7 @@ class BrainTestNavigator(Brain):
       cv2.putText(img,"Icono actual: " + str(icon),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
 
       if (tipo < a.DOS_SALIDAS) and (icon != "flecha" and icon != "Ninguno"):
+        print "Se ha reconocido el icono:", " ",icon
 
         if icon =="cruz":
             #self.n_fin += 1
@@ -300,11 +301,11 @@ class BrainTestNavigator(Brain):
 
       #print("Salida final final final: {}".format(self.salida))
       lineDistance = ((self.half-self.salida[0]))/self.half
-      cv2.putText(img,str(self.salida),(0,img.shape[0]-10),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
+      #cv2.putText(img,str(self.salida),(0,img.shape[0]-10),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,str(salida_final),(0,img.shape[0]-20),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.cnt_una),(0,40),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
       #cv2.putText(img,"{}({})".format("",self.velocidad),(0,120),cv2.FONT_HERSHEY_SIMPLEX,1,tcolor,1)
-      cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
+      #cv2.circle(img[h:,:],tuple(self.salida),3,(0,255,0),-1)
       #cv2.circle(img,(self_entrada[0],img[h:,:].shape[1]),3,(0,255,0),-1)
       if icon == "flecha":
           #self.n_fin = 0
@@ -318,11 +319,12 @@ class BrainTestNavigator(Brain):
     #cv2.imshow("segmentacion",paleta[lin])
     #cv2.imshow("video",img)
     self.video.write(img)
+    self.segmentacion.write(paleta[cats])
     cv2.waitKey(1)
     return hasLine,lineDistance,icon,estado
 
   def step_spiral(self):
-    print "SPIRAL"
+    #print "SPIRAL"
     global hasLine
     if not(hasLine) or self.ticks_en_espiral < 2:
       self.ticks_en_espiral +=1
@@ -389,7 +391,7 @@ class BrainTestNavigator(Brain):
     hasLine,lineDistance,icon,estado = self.step_capture()
     #print "I got from the simulation",hasLine,lineDistance,icon
     #print self.estado
-    print("Distance: {}".format(lineDistance))
+    #print("Distance: {}".format(lineDistance))
     if self.fin:
         return
     self.estados[self.LINEA]()

@@ -25,6 +25,7 @@ class Clasificador:
         # cats = np.apply_along_axis (self.classif_px,1,imr)
         d = self.distance_matrix (imr,self.centroids)
         #cats = np.argmin (d,axis=1)
+        
         cats = np.argmax(d,axis=1)
         res = np.reshape (cats,(x,y))
         return res
